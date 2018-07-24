@@ -34,4 +34,5 @@ build/*
 cmake-build-debug/*
 cmake-build-release/*
 okvis/build/*
+okvis/cmake-build-debug/*
 .idea/*

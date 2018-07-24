@@ -106,8 +106,6 @@ else()
   message(STATUS "libvisensor not found")
 endif()
 
-#set(OpenCV_DIR /home/pang/software/opencv2413_install/share/OpenCV)
-
 # glog
 find_package(Glog REQUIRED)
 include_directories(BEFORE ${GLOG_INCLUDE_DIRS})
@@ -189,6 +187,15 @@ SET(OpenGV_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/3rdpart_install/include)
 SET(OpenGV_LIBRARIES ${PROJECT_SOURCE_DIR}/3rdpart_install/lib/libopengv.a)
 endif()
 
+# Find svo dependent
+FIND_PACKAGE(Sophus REQUIRED)
+FIND_PACKAGE(fast REQUIRED)
+#FIND_PACKAGE(vikit_common)
+INCLUDE_DIRECTORIES(
+        ${Sophus_INCLUDE_DIRS}
+        ${fast_INCLUDE_DIRS}
+)
+
 if(${BUILD_TESTS})
   # gmock
   # http://stackoverflow.com/questions/9689183/cmake-googletest
@@ -219,6 +226,10 @@ if(${BUILD_TESTS})
                   ${GTEST_LIBRARY_PATH})
   add_dependencies(${GTEST_LIBRARY} googlemock)
 endif()
+
+# BUILD SVO
+include_directories(depth_filter/include)
+add_subdirectory(depth_filter)
 
 # BUILD LOCAL DEPENDENCIES
 include_directories(okvis_util/include)
@@ -308,7 +319,8 @@ export (TARGETS
     okvis_timing
     okvis_matcher
     okvis_frontend
-    okvis_multisensor_processing 
+    okvis_multisensor_processing
+        depth_filter
     FILE "${PROJECT_BINARY_DIR}/okvisTargets.cmake")
 export ( PACKAGE okvis )
 
@@ -327,6 +339,7 @@ set(CONF_INCLUDE_DIRS
   "${PROJECT_SOURCE_DIR}/okvis_matcher/include"
   "${PROJECT_SOURCE_DIR}/okvis_frontend/include"
   "${PROJECT_SOURCE_DIR}/okvis_multisensor_processing/include"
+  "${PROJECT_SOURCE_DIR}/depth_filter/include"
   "${PROJECT_BINARY_DIR}"
 )
 configure_file(cmake/okvisConfig.cmake.in
