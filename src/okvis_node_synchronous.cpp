@@ -178,6 +178,7 @@ int main(int argc, char **argv) {
     ros::spinOnce();
 	okvis_estimator.display();
 
+
     // check if at the end
     if (view_imu_iterator == view_imu.end()){
       std::cout << std::endl << "Finished. Press any key to exit." << std::endl << std::flush;

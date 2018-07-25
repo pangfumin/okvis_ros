@@ -62,6 +62,7 @@ LIST(APPEND SOURCEFILES
         src/vikit/vision.cpp
   src/frame_handler_mono.cpp
   src/frame_handler_base.cpp
+  src/sliding_window_frame_handler.cpp
   src/frame.cpp
   src/point.cpp
   src/map.cpp

@@ -41,6 +41,7 @@ target_link_libraries(${PROJECT_NAME}
    PUBLIC okvis_common
    PUBLIC okvis_ceres 
    PUBLIC okvis_frontend
+   PUBLIC depth_filter
    PRIVATE ${GLOG_LIBRARIES}
 )
 
