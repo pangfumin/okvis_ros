@@ -25,28 +25,21 @@ ELSE()
 ENDIF()
 SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O3 -fsee -fomit-frame-pointer -fno-signed-zeros -fno-math-errno -funroll-loops")
 
-# Add plain cmake packages 
-
-FIND_PACKAGE(Boost REQUIRED COMPONENTS thread system)
-
+# Add plain cmake packages
+find_package(OpenCV REQUIRED )
+FIND_PACKAGE(Boost COMPONENTS thread filesystem system REQUIRED)
 
 # Include dirs
 INCLUDE_DIRECTORIES(
   include
-  ${Eigen_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  ${Eigen_INCLUDE_DIRS}
   ${Sophus_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${fast_INCLUDE_DIRS}
 )
 
-# Set link libraries
-LIST(APPEND LINK_LIBS 
-  ${OpenCV_LIBS}
-  ${Sophus_LIBRARIES}
-  ${Boost_LIBRARIES}
-  ${fast_LIBRARIES}
-)
+
 
 # Set sourcefiles
 LIST(APPEND SOURCEFILES
@@ -78,7 +71,11 @@ LIST(APPEND SOURCEFILES
 
 ADD_LIBRARY(depth_filter  ${SOURCEFILES})
 target_link_libraries(depth_filter
-        ${LINK_LIBS})
+        PUBLIC okvis_kinematics
+        PRIVATE ${OpenCV_LIBRARIES}
+        PRIVATE ${Sophus_LIBRARIES}
+        PRIVATE ${Boost_LIBRARIES}
+        PRIVATE ${fast_LIBRARIES})
 
 # installation if required
 install(TARGETS ${PROJECT_NAME}

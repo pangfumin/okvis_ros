@@ -9,10 +9,16 @@
 namespace svo {
     class SlidingWindowFrameHandler : public FrameHandlerBase{
     public:
-        SlidingWindowFrameHandler(vk::AbstractCamera* cam);
+        SlidingWindowFrameHandler(vk::AbstractCamera* cam0, vk::AbstractCamera* cam1 , int maxKeyframeNum);
+        /// Provide an image.
+        void addImage(const cv::Mat& img0, const cv::Mat& img1, Sophus::SE3& T_W_C0, Sophus::SE3& T_W_C1,
+                      double timestamp, bool isKeyframe);
     private:
-        vk::AbstractCamera* cam_;                     //!< Camera model, can be ATAN, Pinhole or Ocam (see vikit).
-        Reprojector reprojector_;                     //!< Projects points from other keyframes into the current frame
+        int maxKeyframeNum_;
+        vk::AbstractCamera* cam0_;                     //!< Camera model, can be ATAN, Pinhole or Ocam (see vikit).
+        vk::AbstractCamera* cam1_;                     //!< Camera model, can be ATAN, Pinhole or Ocam (see vikit).
+        Reprojector reprojector0_;                     //!< Projects points from other keyframes into the current frame
+        Reprojector reprojector1_;                     //!< Projects points from other keyframes into the current frame
         FramePtr new_frame_;                          //!< Current frame.
         FramePtr last_frame_;                         //!< Last frame, not necessarily a keyframe.
         set<FramePtr> core_kfs_;                      //!< Keyframes in the closer neighbourhood.
@@ -22,6 +28,15 @@ namespace svo {
 
         /// Initialize the visual odometry algorithm.
         virtual void initialize();
+
+        /// Processes the first frame and sets it as a keyframe.
+        virtual UpdateResult processFirstFrame(Sophus::SE3& T_WC);
+
+        /// Processes all frames after the first frame until a keyframe is selected.
+        virtual UpdateResult processSecondFrame(Sophus::SE3& T_WC);
+
+        /// Processes all frames after the first two keyframes.
+        virtual UpdateResult processFrame(Sophus::SE3& T_WC, bool isKeyframe);
 
     };
 }

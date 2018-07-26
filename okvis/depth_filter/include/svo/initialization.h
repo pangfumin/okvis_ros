@@ -76,6 +76,11 @@ void computeHomography(
     vector<int>& inliers,
     vector<Vector3d>& xyz_in_cur,
     SE3& T_cur_from_ref);
+Eigen::Vector4d triangulateFast(const Eigen::Vector3d& p1,
+    const Eigen::Vector3d& e1,
+    const Eigen::Vector3d& p2,
+    const Eigen::Vector3d& e2, double sigma,
+    bool& isValid, bool& isParallel);
 
 } // namespace initialization
 } // namespace svo

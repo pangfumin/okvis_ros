@@ -46,6 +46,11 @@
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/ImuError.hpp>
 
+#include <svo/sliding_window_frame_handler.hpp>
+#include <vikit/pinhole_camera.h>
+#include <svo/convertor.hpp>
+
+
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
@@ -119,6 +124,39 @@ void ThreadedKFVio::init() {
   	  cv::namedWindow(windowname.str());
     }
   }
+
+  /*
+   * svo
+   */
+
+  std::vector<std::shared_ptr<vk::AbstractCamera>> svo_pinhole_cams(numCameras_);
+  for (size_t i = 0; i < numCameras_; ++i) {
+    double width = parameters_.nCameraSystem.cameraGeometry(i)->imageWidth();
+    double hight = parameters_.nCameraSystem.cameraGeometry(i)->imageHeight();
+    Eigen::VectorXd intrinsic;
+    parameters_.nCameraSystem.cameraGeometry(i)->getIntrinsics(intrinsic);
+    double fx, fy, cx, cy, k1, k2, k3, k4;
+    fx = intrinsic[0];
+    fy = intrinsic[1];
+    cx = intrinsic[2];
+    cy = intrinsic[3];
+    k1 = intrinsic[4];
+    k2 = intrinsic[5];
+    k3 = intrinsic[6];
+    k4 = intrinsic[7];
+
+    std::cout<< "intrinsic " <<i << " : " << fx << " " << fy << " " << cx << " " << cy
+             << " " << k1 << " " <<k2 << " " << k3 << " " << k4 << std::endl;
+
+    svo_pinhole_cams[i] = std::make_shared<vk::PinholeCamera>(width, hight, fy, fy, cx, cy, k1, k2, k3, k4, 0);
+  }
+
+  slidingWindowFrameHandler_
+          = std::make_shared<svo::SlidingWindowFrameHandler>(
+                  svo_pinhole_cams[0].get(), svo_pinhole_cams[1].get(),
+                  parameters_.optimization.numKeyframes);
+
+
   
   startThreads();
 }
@@ -529,7 +567,23 @@ void ThreadedKFVio::matchingLoop() {
         estimator_.setOptimizationTimeLimit(std::max<double>(0.0, timeLimit),
                                             parameters_.optimization.min_iterations);
       }
+
+
       optimizationDone_ = false;
+
+
+      /*
+       *
+       */
+      cv::Mat image0 = frame->image(0);
+      cv::Mat image1 = frame->image(1);
+      okvis::kinematics::Transformation T_SC0 = *(frame->T_SC(0));
+      okvis::kinematics::Transformation T_SC1 = *(frame->T_SC(1));
+      Sophus::SE3 se3_T_SC0 = svo::Transformation2SE3(T_SC0);
+      Sophus::SE3 se3_T_SC1 = svo::Transformation2SE3(T_SC1);
+
+      slidingWindowFrameHandler_->addImage(image0, image1, se3_T_SC0,
+                                           se3_T_SC1, frame->timestamp().toSec(), asKeyframe);
     }  // unlock estimator_mutex_
 
     // use queue size 1 to propagate a congestion to the _matchedFrames queue

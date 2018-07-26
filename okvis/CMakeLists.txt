@@ -227,9 +227,6 @@ if(${BUILD_TESTS})
   add_dependencies(${GTEST_LIBRARY} googlemock)
 endif()
 
-# BUILD SVO
-include_directories(depth_filter/include)
-add_subdirectory(depth_filter)
 
 # BUILD LOCAL DEPENDENCIES
 include_directories(okvis_util/include)
@@ -238,6 +235,11 @@ add_subdirectory(okvis_util)
 include_directories(okvis_kinematics/include)
 add_subdirectory(okvis_kinematics)
 add_dependencies(okvis_kinematics okvis_util)
+
+# BUILD SVO
+include_directories(depth_filter/include)
+add_subdirectory(depth_filter)
+
 
 include_directories(okvis_time/include)
 add_subdirectory(okvis_time)

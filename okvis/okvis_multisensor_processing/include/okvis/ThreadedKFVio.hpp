@@ -59,6 +59,7 @@
 #include <okvis/timing/Timer.hpp>
 #include <okvis/threadsafe/ThreadsafeQueue.hpp>
 
+
 #ifdef USE_MOCK
 #include <../test/MockVioFrontendInterface.hpp>
 #include <../test/MockVioBackendInterface.hpp>
@@ -66,6 +67,10 @@
 #include <okvis/Estimator.hpp>
 #include <okvis/VioFrontendInterface.hpp>
 #endif
+
+namespace svo {
+    class SlidingWindowFrameHandler;
+}
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -435,7 +440,13 @@ class ThreadedKFVio : public VioInterface {
 
   /// Max position measurements before dropping.
   const size_t maxPositionInputQueueSize_ = 10;
-  
+
+  /*
+   *  SVO depth filter related
+   */
+
+  std::shared_ptr<svo::SlidingWindowFrameHandler> slidingWindowFrameHandler_;
+
 };
 
 }  // namespace okvis
