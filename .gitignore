@@ -31,7 +31,8 @@
 documentation/html/
 
 build/*
+okvis/cmake-build-debug/*
+okvis/cmake-build-release/*
 cmake-build-debug/*
-cmake-build-release/*
 okvis/build/*
 .idea/*
