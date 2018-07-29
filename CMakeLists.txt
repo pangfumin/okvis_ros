@@ -110,3 +110,6 @@ target_link_libraries(okvis_node_synchronous ${PROJECT_NAME} )
 add_executable(dataset_convertor src/dataset_convertor.cpp)
 target_link_libraries(dataset_convertor ${PROJECT_NAME} )
 
+
+
+

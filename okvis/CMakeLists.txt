@@ -220,6 +220,11 @@ if(${BUILD_TESTS})
   add_dependencies(${GTEST_LIBRARY} googlemock)
 endif()
 
+
+# FLAME
+
+include_directories(mesh_estimate/include)
+add_subdirectory(mesh_estimate)
 # BUILD LOCAL DEPENDENCIES
 include_directories(okvis_util/include)
 add_subdirectory(okvis_util)
@@ -308,7 +313,8 @@ export (TARGETS
     okvis_timing
     okvis_matcher
     okvis_frontend
-    okvis_multisensor_processing 
+    okvis_multisensor_processing
+        mesh_estimate
     FILE "${PROJECT_BINARY_DIR}/okvisTargets.cmake")
 export ( PACKAGE okvis )
 
@@ -327,6 +333,7 @@ set(CONF_INCLUDE_DIRS
   "${PROJECT_SOURCE_DIR}/okvis_matcher/include"
   "${PROJECT_SOURCE_DIR}/okvis_frontend/include"
   "${PROJECT_SOURCE_DIR}/okvis_multisensor_processing/include"
+  "${PROJECT_SOURCE_DIR}/mesh_estimate/include"
   "${PROJECT_BINARY_DIR}"
 )
 configure_file(cmake/okvisConfig.cmake.in
