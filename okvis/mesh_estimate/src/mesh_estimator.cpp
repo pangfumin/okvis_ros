@@ -1,8 +1,11 @@
 #include "flame/mesh_estimator.hpp"
 #include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/core/eigen.hpp>
 
 namespace flame {
+
+    uint64_t MeshEstimator::img_id_ = 0;
     MeshEstimator::MeshEstimator(int width, int height,
                                  const Matrix3f& K, const Matrix3f& Kinv,
                                  const Vector4f& distort,
@@ -22,28 +25,42 @@ namespace flame {
     }
 
     void MeshEstimator::processFrame(const uint32_t img_id, const double time,
-                      const Sophus::SE3f& pose, const cv::Mat& img_gray,
-                      const cv::Mat1f& depth) {
+                      const okvis::kinematics::Transformation& T_WC, const cv::Mat& img_gray) {
 
 
-//        cv::Mat Kcv;
-//        eigen2cv(K_, Kcv);
-//        cv::undistort(rgb_raw, *rgb, Kcv, cinfo_.D);
+
+//
         /*==================== Process image ====================*/
-        // Convert to grayscale.
+        cv::Mat img_gray_undist;
+        cv::undistort(img_gray, img_gray_undist, Kcv_, Dcv_);
+
+        SE3d pose(T_WC.C(), T_WC.r());
+//        std::cout<< T_WC.T() << std::endl;
+//        std::cout<< pose.unit_quaternion().toRotationMatrix() << std::endl;
 
 
-        bool is_poseframe = (img_id % poseframe_subsample_factor_) == 0;
+        bool is_poseframe = (img_id_   % poseframe_subsample_factor_) == 0;
+
         bool update_success = false;
 
-            update_success = sensor_->update(time, img_id, pose, img_gray,
+            update_success = sensor_->update(time, img_id_, pose.cast<float>(), img_gray_undist,
                                              is_poseframe);
-        if (!update_success) {
-            //ROS_WARN("FlameOffline: Unsuccessful update.\n");
-            return;
-        }
 
-        // todo : add publish and result into buffer
+        img_id_ ++;
+//        if (!update_success) {
+//            //ROS_WARN("FlameOffline: Unsuccessful update.\n");
+//            return;
+//        }
+
+        Image3b wireImage = sensor_->getDebugImageWireframe();
+//        Image3b wireImage = sensor_->getDebugImageFeatures();
+        cv::imshow("wireImage", wireImage);
+
+        Image3b depthImage = sensor_->getDebugImageInverseDepthMap();
+        cv::imshow("depthImage", depthImage);
+        cv::waitKey(2);
+//
+//        // todo : add publish and result into buffer
 
     }
 

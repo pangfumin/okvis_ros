@@ -153,3 +153,6 @@ add_executable(okvis_node_synchronous src/okvis_node_synchronous.cpp)
 target_link_libraries(okvis_node_synchronous ${PROJECT_NAME} )
 
 
+add_executable(okvis_mesh_estimate src/okvis_mesh_estimate.cpp)
+target_link_libraries(okvis_mesh_estimate ${PROJECT_NAME} mesh_estimate_util )
+

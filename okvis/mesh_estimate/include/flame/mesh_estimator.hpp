@@ -2,6 +2,7 @@
 #define _MESH_ESTIMATOR_H_
 
 #include "flame/flame.h"
+#include <okvis/kinematics/Transformation.hpp>
 namespace flame {
 
     class MeshEstimator {
@@ -11,13 +12,13 @@ namespace flame {
                       const Params& parameters = Params());
 
         void processFrame(const uint32_t img_id, const double time,
-                          const Sophus::SE3f& pose, const cv::Mat& img_gray,
-                          const cv::Mat1f& depth);
+                          const okvis::kinematics::Transformation& T_WC, const cv::Mat& img_gray);
 
 
         std::shared_ptr<flame::Flame> sensor_;
     private:
 
+        static uint64_t img_id_;
         // Depth sensor.
         cv::Mat Kcv_, Dcv_;
         flame::Params params_;

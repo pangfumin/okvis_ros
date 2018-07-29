@@ -34,6 +34,7 @@ set(FLAME_SRCS
 add_library(mesh_estimate  ${FLAME_SRCS})
 
 target_link_libraries(mesh_estimate
+        okvis_kinematics
         ${OpenCV_LIBS}
         ${Boost_LIBRARIES})
 

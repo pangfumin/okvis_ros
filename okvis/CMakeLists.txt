@@ -221,10 +221,7 @@ if(${BUILD_TESTS})
 endif()
 
 
-# FLAME
 
-include_directories(mesh_estimate/include)
-add_subdirectory(mesh_estimate)
 # BUILD LOCAL DEPENDENCIES
 include_directories(okvis_util/include)
 add_subdirectory(okvis_util)
@@ -262,6 +259,10 @@ add_dependencies(okvis_frontend  okvis_util)
 else()
 add_dependencies(okvis_frontend opengv okvis_util)
 endif()
+
+# FLAME
+include_directories(mesh_estimate/include)
+add_subdirectory(mesh_estimate)
 
 include_directories(okvis_multisensor_processing/include)
 add_subdirectory(okvis_multisensor_processing)

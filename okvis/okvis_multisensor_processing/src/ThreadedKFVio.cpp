@@ -47,6 +47,7 @@
 #include <okvis/ceres/ImuError.hpp>
 
 #include <flame/mesh_estimator.hpp>
+//#include <flame/convertor.hpp>
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -561,6 +562,8 @@ void ThreadedKFVio::matchingLoop() {
                                             parameters_.optimization.min_iterations);
       }
       optimizationDone_ = false;
+
+
     }  // unlock estimator_mutex_
 
     // use queue size 1 to propagate a congestion to the _matchedFrames queue
@@ -860,6 +863,25 @@ void ThreadedKFVio::optimizationLoop() {
         estimator_.get_T_WS(estimator_.currentKeyframeId(),
                             visualizationDataPtr->T_WS_keyFrame);
       }
+
+
+      /*
+     *
+     */
+//      frame_pairs->id(), lastOptimized_T_WS_
+
+      Eigen::Matrix4d T_frd_to_rdf;
+      T_frd_to_rdf << 0.0, 1.0, 0.0, 0,
+              0.0, 0.0, 1.0, 0,
+              1.0, 0.0, 0.0, 0,
+              0,0,0,1;
+
+      okvis::kinematics::Transformation T(T_frd_to_rdf);
+      okvis::kinematics::Transformation T_WC =  T * lastOptimized_T_WS_ * (*parameters_.nCameraSystem.T_SC(0));
+      meshEstimatorPtr_->processFrame(0, frame_pairs->timestamp().toSec(),
+                                      T_WC,
+                                      frame_pairs->image(0).clone());
+
 
       optimizationDone_ = true;
     }  // unlock mutex

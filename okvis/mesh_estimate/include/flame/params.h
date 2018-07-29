@@ -45,7 +45,7 @@ struct Params {
 
   // Feature Detection params.
   bool continuous_detection = true; // Continually detect features.
-  int detection_win_size = 16; // Features are detected on grid with cells of size (win_size x win_size).
+  int detection_win_size = 8; // Features are detected on grid with cells of size (win_size x win_size).
   bool do_letterbox = false; // Only process middle rows of image.
   float min_error = 100.0f;
 
@@ -132,12 +132,12 @@ struct Params {
   bool debug_print_timing_idepth_triangle_filter = true;
   bool debug_print_verbose_errors = false;
   bool debug_draw_detections = false;
-  bool debug_draw_wireframe = false;
-  bool debug_draw_features = false;
+  bool debug_draw_wireframe = true;
+  bool debug_draw_features = true;
   bool debug_draw_matches = false;
   bool debug_draw_photo_error = false;
   bool debug_draw_normals = false;
-  bool debug_draw_idepthmap = false;
+  bool debug_draw_idepthmap = true;
   bool debug_draw_text_overlay = true;
   bool debug_flip_images = false;
 };
