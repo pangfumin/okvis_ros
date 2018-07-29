@@ -104,14 +104,6 @@ include_directories(
         okvis/mesh_estimate/include
 )
 
-# now the actual applications
-add_executable(okvis_node src/okvis_node.cpp )
-target_link_libraries(okvis_node ${PROJECT_NAME} )
-add_executable(okvis_node_synchronous src/okvis_node_synchronous.cpp)
-target_link_libraries(okvis_node_synchronous ${PROJECT_NAME} )
-add_executable(dataset_convertor src/dataset_convertor.cpp)
-target_link_libraries(dataset_convertor ${PROJECT_NAME} )
-
 
 # Add mesh_estimate
 find_package(PCL 1.7 REQUIRED COMPONENTS common)
@@ -127,8 +119,8 @@ include_directories(
         ${catkin_INCLUDE_DIRS})
 
 # flame_offline_asl.
-add_executable(flame_offline_asl_okvis
-        src/mesh_estimate/flame_offline_asl.cc
+
+add_library(mesh_estimate_util
         src/mesh_estimate/utils.h
         src/mesh_estimate/utils.cc
         src/mesh_estimate/ros_sensor_streams/asl_rgbd_offline_stream.h
@@ -137,10 +129,27 @@ add_executable(flame_offline_asl_okvis
         src/mesh_estimate/dataset_utils/asl/types.h
         src/mesh_estimate/dataset_utils/utils.h
         src/mesh_estimate/dataset_utils/utils.cc)
-target_link_libraries(flame_offline_asl_okvis
+target_link_libraries(mesh_estimate_util
         mesh_estimate
         ${OpenCV_LIBS}
         ${PCL_LIBRARIES}
         ${YAML_CPP_LIBRARIES}
         ${catkin_LIBRARIES})
+add_executable(flame_offline_asl_okvis
+        src/mesh_estimate/flame_offline_asl.cc
+        )
+target_link_libraries(flame_offline_asl_okvis
+        mesh_estimate_util)
+
+
+# now the actual applications
+add_executable(okvis_node src/okvis_node.cpp )
+target_link_libraries(okvis_node ${PROJECT_NAME} )
+add_executable(dataset_convertor src/dataset_convertor.cpp)
+target_link_libraries(dataset_convertor ${PROJECT_NAME} )
+
+
+add_executable(okvis_node_synchronous src/okvis_node_synchronous.cpp)
+target_link_libraries(okvis_node_synchronous ${PROJECT_NAME} )
+
 

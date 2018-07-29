@@ -15,8 +15,8 @@ include_directories(include ${OpenCV_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 # Build main library.
 set(FLAME_SRCS
+        src/mesh_estimator.cpp
         src/flame.cc
-
         src/external/triangle/triangle.cpp
 
         src/optimizers/nltgv2_l1_graph_regularizer.cc

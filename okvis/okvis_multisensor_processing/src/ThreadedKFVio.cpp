@@ -46,6 +46,8 @@
 #include <okvis/assert_macros.hpp>
 #include <okvis/ceres/ImuError.hpp>
 
+#include <flame/mesh_estimator.hpp>
+
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
@@ -70,7 +72,7 @@ ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters, okvis::MockVioBac
 }
 #else
 // Constructor.
-ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters)
+ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters, flame::Params mesh_parameter)
     : speedAndBiases_propagated_(okvis::SpeedAndBias::Zero()),
       imu_params_(parameters.imu),
       repropagationNeeded_(false),
@@ -80,9 +82,12 @@ ThreadedKFVio::ThreadedKFVio(okvis::VioParameters& parameters)
       estimator_(),
       frontend_(parameters.nCameraSystem.numCameras()),
       parameters_(parameters),
-      maxImuInputQueueSize_(
+      maxImuInputQueueSize_ (
           2 * max_camera_input_queue_size * parameters.imu.rate
-              / parameters.sensors_information.cameraRate) {
+              / parameters.sensors_information.cameraRate),
+      meshParams(mesh_parameter){
+
+
   setBlocking(false);
   init();
 }
@@ -119,6 +124,32 @@ void ThreadedKFVio::init() {
   	  cv::namedWindow(windowname.str());
     }
   }
+
+  /*
+   * Mesh estimator
+   */
+
+  double width = parameters_.nCameraSystem.cameraGeometry(0)->imageWidth();
+  double height = parameters_.nCameraSystem.cameraGeometry(0)->imageHeight();
+  Eigen::VectorXd intrinsic;
+  parameters_.nCameraSystem.cameraGeometry(0)->getIntrinsics(intrinsic);
+  double fx = intrinsic[0];
+  double fy = intrinsic[1];
+  double cx = intrinsic[2];
+  double cy = intrinsic[3];
+  double k1 = intrinsic[4];
+  double k2 = intrinsic[5];
+  double k3 = intrinsic[6];
+  double k4 = intrinsic[7];
+
+  Eigen::Matrix3d K = Eigen::Matrix3d::Identity();
+  K(0,0) = fx; K(1,1) = fy; K(0,2) = cx; K(1,2) = cy;
+  Eigen::Vector4d distort;
+  distort << k1,k2,k3,k4;
+  meshEstimatorPtr_
+          = std::make_shared<flame::MeshEstimator>(width, height,
+                  K.cast<float>(), K.inverse().cast<float>(),
+                          distort.cast<float>(), meshParams);
   
   startThreads();
 }

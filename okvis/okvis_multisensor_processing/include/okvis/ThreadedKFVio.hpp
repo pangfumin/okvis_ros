@@ -59,6 +59,8 @@
 #include <okvis/timing/Timer.hpp>
 #include <okvis/threadsafe/ThreadsafeQueue.hpp>
 
+#include <flame/params.h>
+
 #ifdef USE_MOCK
 #include <../test/MockVioFrontendInterface.hpp>
 #include <../test/MockVioBackendInterface.hpp>
@@ -66,6 +68,11 @@
 #include <okvis/Estimator.hpp>
 #include <okvis/VioFrontendInterface.hpp>
 #endif
+
+
+namespace flame {
+    class MeshEstimator;
+}
 
 /// \brief okvis Main namespace of this package.
 namespace okvis {
@@ -108,7 +115,7 @@ class ThreadedKFVio : public VioInterface {
    * \brief Constructor.
    * \param parameters Parameters and settings.
    */
-  ThreadedKFVio(okvis::VioParameters& parameters);
+  ThreadedKFVio(okvis::VioParameters& parameters, flame::Params mesh_parameter = flame::Params());
 #endif
 
   /// \brief Destructor. This calls Shutdown() for all threadsafe queues and joins all threads.
@@ -435,7 +442,15 @@ class ThreadedKFVio : public VioInterface {
 
   /// Max position measurements before dropping.
   const size_t maxPositionInputQueueSize_ = 10;
-  
+
+  /*
+   *  Mesh estimate
+   *
+   */
+
+  flame::Params meshParams;
+  std::shared_ptr<flame::MeshEstimator> meshEstimatorPtr_;
+
 };
 
 }  // namespace okvis
