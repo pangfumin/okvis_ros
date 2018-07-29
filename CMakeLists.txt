@@ -82,6 +82,7 @@ target_link_libraries(${PROJECT_NAME}
   okvis_matcher
   okvis_frontend 
   okvis_multisensor_processing
+        mesh_estimate
   pthread
 )
 
@@ -100,6 +101,7 @@ include_directories(
   okvis/okvis_matcher/include
   okvis/okvis_frontend/include 
   okvis/okvis_multisensor_processing/include
+        okvis/mesh_estimate/include
 )
 
 # now the actual applications
@@ -111,5 +113,34 @@ add_executable(dataset_convertor src/dataset_convertor.cpp)
 target_link_libraries(dataset_convertor ${PROJECT_NAME} )
 
 
+# Add mesh_estimate
+find_package(PCL 1.7 REQUIRED COMPONENTS common)
+find_package(Boost 1.54 REQUIRED)
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(YAML_CPP REQUIRED yaml-cpp>=0.5)
+include_directories(
+        src/mesh_estimate
+        ${YAML_CPP_INCLUDE_DIRS}
+        ${PCL_INCLUDE_DIRS}
+        ${Boost_INCLUDE_DIRS}
+        ${catkin_INCLUDE_DIRS})
+
+# flame_offline_asl.
+add_executable(flame_offline_asl_okvis
+        src/mesh_estimate/flame_offline_asl.cc
+        src/mesh_estimate/utils.h
+        src/mesh_estimate/utils.cc
+        src/mesh_estimate/ros_sensor_streams/asl_rgbd_offline_stream.h
+        src/mesh_estimate/ros_sensor_streams/asl_rgbd_offline_stream.cc
+        src/mesh_estimate/dataset_utils/asl/dataset.h
+        src/mesh_estimate/dataset_utils/asl/types.h
+        src/mesh_estimate/dataset_utils/utils.h
+        src/mesh_estimate/dataset_utils/utils.cc)
+target_link_libraries(flame_offline_asl_okvis
+        mesh_estimate
+        ${OpenCV_LIBS}
+        ${PCL_LIBRARIES}
+        ${YAML_CPP_LIBRARIES}
+        ${catkin_LIBRARIES})
 
