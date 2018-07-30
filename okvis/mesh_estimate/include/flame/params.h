@@ -45,7 +45,7 @@ struct Params {
 
   // Feature Detection params.
   bool continuous_detection = true; // Continually detect features.
-  int detection_win_size = 8; // Features are detected on grid with cells of size (win_size x win_size).
+  int detection_win_size = 16; // Features are detected on grid with cells of size (win_size x win_size).
   bool do_letterbox = false; // Only process middle rows of image.
   float min_error = 100.0f;
 
@@ -85,11 +85,11 @@ struct Params {
   float min_triangle_idepth = 0.01f;
 
   // Regularizer params.
-  float min_height = 0.1f;
-  float max_height = 4;
+  float min_height = -10000.0f;
+  float max_height = 10000.0f;
   float idepth_var_max_graph = 1e-2f; // Max var of feat to add to graph.
   bool adaptive_data_weights = false; // Set data weights to 1/var instead of 1.
-  bool init_with_prediction = false; // Initialize idepth using predicted value.
+  bool init_with_prediction = true; // Initialize idepth using predicted value.
   bool rescale_data = false;
   bool check_sticky_obstacles = false; // Check if idepths are being sucked towards the camera because of sticky obstacles.
   bool do_nltgv2 = true;
