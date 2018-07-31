@@ -226,11 +226,27 @@ namespace okvis {
                                        lastOptimizedSpeedAndBiases_);
             lastOptimizedStateTimestamp_ = multiFrame->timestamp();
 
-            result.onlyPublishLandmarks = true;
+            // if we publish the state after each IMU propagation we do not need to publish it here.
+
+            result.T_WS = lastOptimized_T_WS_;
+            result.speedAndBiases = lastOptimizedSpeedAndBiases_;
+            result.stamp = lastOptimizedStateTimestamp_;
+            result.onlyPublishLandmarks = false;
+
             estimator_.getLandmarks(result.landmarksVector);
 
             repropagationNeeded_ = true;
         }
+
+
+        // adding further elements to result that do not access estimator.
+        for (size_t i = 0; i < parameters_.nCameraSystem.numCameras(); ++i) {
+            result.vector_of_T_SCi.push_back(
+                    okvis::kinematics::Transformation(
+                            *parameters_.nCameraSystem.T_SC(i)));
+        }
+
+
 
         /***************  Visualization ***************/
         VioVisualizer::VisualizationData::Ptr visualizationDataPtr;
@@ -285,7 +301,19 @@ namespace okvis {
             display();
 
 
+
+
+
         }
+
+        /***************  State callback ***************/
+
+        if (fullStateCallback_ && !result.onlyPublishLandmarks) {
+            fullStateCallback_(result.stamp, result.T_WS, result.speedAndBiases,
+                               result.omega_S);
+        }
+
+
 
 //            cv::imshow("image0", visualizationDataPtr->keyFrames->image(0));
 //            cv::imshow("image1", visualizationDataPtr->keyFrames->image(1));

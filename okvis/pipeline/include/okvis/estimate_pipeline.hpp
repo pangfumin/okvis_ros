@@ -165,59 +165,6 @@ namespace okvis {
             OKVIS_THROW(Exception, "not implemented");
         }
 
-        /// \}
-        /// \name Setters
-        /// \{
-
-        /// \brief Set the stateCallback to be called every time a new state is estimated.
-        ///        When an implementing class has an estimate, they can call:
-        ///        stateCallback_( stamp, T_w_vk );
-        ///        where stamp is the timestamp
-        ///        and T_w_vk is the transformation (and uncertainty) that
-        ///        transforms points from the vehicle frame to the world frame
-        virtual void setStateCallback(const StateCallback & stateCallback) {
-            OKVIS_THROW(Exception, "not implemented");
-
-        }
-
-        /// \brief Set the fullStateCallback to be called every time a new state is estimated.
-        ///        When an implementing class has an estimate, they can call:
-        ///        _fullStateCallback( stamp, T_w_vk, speedAndBiases, omega_S);
-        ///        where stamp is the timestamp
-        ///        and T_w_vk is the transformation (and uncertainty) that
-        ///        transforms points from the vehicle frame to the world frame. speedAndBiases contain
-        ///        speed in world frame followed by gyro and acc biases. finally, omega_S is the rotation speed.
-        virtual void setFullStateCallback(
-                const FullStateCallback & fullStateCallback) {
-            OKVIS_THROW(Exception, "not implemented");
-
-        }
-
-        /// \brief Set the fullStateCallbackWithExtrinsics to be called every time a new state is estimated.
-        ///        When an implementing class has an estimate, they can call:
-        ///        _fullStateCallbackWithEctrinsics( stamp, T_w_vk, speedAndBiases, omega_S, vector_of_T_SCi);
-        ///        where stamp is the timestamp
-        ///        and T_w_vk is the transformation (and uncertainty) that
-        ///        transforms points from the vehicle frame to the world frame. speedAndBiases contain
-        ///        speed in world frame followed by gyro and acc biases.
-        ///        omega_S is the rotation speed
-        ///        vector_of_T_SCi contains the (uncertain) transformations of extrinsics T_SCi
-        virtual void setFullStateCallbackWithExtrinsics(
-                const FullStateCallbackWithExtrinsics & fullStateCallbackWithExtrinsics) {
-            OKVIS_THROW(Exception, "not implemented");
-
-        }
-
-        /// \brief Set the landmarksCallback to be called every time a new state is estimated.
-        ///        When an implementing class has an estimate, they can call:
-        ///        landmarksCallback_( stamp, landmarksVector );
-        ///        where stamp is the timestamp
-        ///        landmarksVector contains all 3D-landmarks with id.
-        virtual void setLandmarksCallback(
-                const LandmarksCallback & landmarksCallback) {
-            OKVIS_THROW(Exception, "not implemented");
-
-        }
 
         /**
          * \brief Set the blocking variable that indicates whether the addMeasurement() functions

@@ -181,10 +181,10 @@ int main(int argc, char **argv)
   okvis::EstimatePipeline okvis_estimator(parameters);
 
   PoseViewer poseViewer;
-//  okvis_estimator.setFullStateCallback(
-//      std::bind(&PoseViewer::publishFullStateAsCallback, &poseViewer,
-//                std::placeholders::_1, std::placeholders::_2,
-//                std::placeholders::_3, std::placeholders::_4));
+  okvis_estimator.setFullStateCallback(
+      std::bind(&PoseViewer::publishFullStateAsCallback, &poseViewer,
+                std::placeholders::_1, std::placeholders::_2,
+                std::placeholders::_3, std::placeholders::_4));
 //
 //  okvis_estimator.setBlocking(true);
 
@@ -250,7 +250,6 @@ int main(int argc, char **argv)
   int counter = 0;
   okvis::Time start(0.0);
   while (true) {
-    poseViewer.display();
 
     // check if at the end
     for (size_t i = 0; i < numCameras; ++i) {
@@ -327,7 +326,9 @@ int main(int argc, char **argv)
 
     ++counter;
 
-    //okvis_estimator.display();
+
+    poseViewer.display();
+
 
 
     // display progress

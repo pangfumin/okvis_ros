@@ -45,7 +45,7 @@ foreach(p LIB BIN INCLUDE CMAKE)
 endforeach()
 
 
-set (CMAKE_BUILD_TYPE Debug)
+set (CMAKE_BUILD_TYPE Release)
 
 # make sure we use Release and warn otherwise
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
