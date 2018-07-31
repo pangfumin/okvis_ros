@@ -707,7 +707,7 @@ void Flame::prunePoseFrames(const std::vector<uint32_t>& pfs_to_keep) {
 
 void Flame::detectionLoop() {
   while (true) {
-    std::cout << "detectionLoop ... " << std::endl;
+    //std::cout << "detectionLoop ... " << std::endl;
     // Wait for new items.
     std::unique_lock<std::mutex> lock(detection_queue_mtx_);
     detection_queue_cv_.wait(lock, [this]() {

@@ -24,7 +24,7 @@ catkin_package(
 )
 
 # we really want to use Release here
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE debug)
 
 message(STATUS "Building with ${CMAKE_BUILD_TYPE}")
 

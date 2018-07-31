@@ -44,6 +44,11 @@ namespace okvis {
 
 
         estimator_.addImu(parameters_.imu);
+        for (size_t i = 0; i < numCameras_; ++i) {
+            // parameters_.camera_extrinsics is never set (default 0's)...
+            // do they ever change?
+            estimator_.addCamera(parameters_.camera_extrinsics);
+            }
 
         // set up windows so things don't crash on Mac OS
         if(parameters_.visualization.displayImages){
@@ -90,7 +95,6 @@ namespace okvis {
                                  const cv::Mat & image1,
                                  const std::vector<cv::KeyPoint> * keypoints,
                                  bool* /*asKeyframe*/) {
-        assert(cameraIndex<numCameras_);
 
         if (lastAddedImageTimestamp_ > stamp
             && fabs((lastAddedImageTimestamp_ - stamp).toSec())
@@ -192,111 +196,100 @@ namespace okvis {
             estimator_.setKeyframe(multiFrame->id(), asKeyframe);
 
 
-//        /***************  optimization and marginalisation ***************/
-//        okvis::Time deleteImuMeasurementsUntil(0, 0);
-//
-//        OptimizationResults result;
-//        estimator_.optimize(parameters_.optimization.max_iterations, 2, false);
-//
-//        // get timestamp of last frame in IMU window. Need to do this before marginalization as it will be removed there (if not keyframe)
-//        if (estimator_.numFrames()
-//            > size_t(parameters_.optimization.numImuFrames)) {
-//            deleteImuMeasurementsUntil = estimator_.multiFrame(
-//                            estimator_.frameIdByAge(parameters_.optimization.numImuFrames))
-//                                                 ->timestamp() - temporal_imu_data_overlap;
-//        }
-//
-//        estimator_.applyMarginalizationStrategy(
-//                parameters_.optimization.numKeyframes,
-//                parameters_.optimization.numImuFrames, result.transferredLandmarks);
-//
-//
-//        // now actually remove measurements
-//        deleteImuMeasurements(deleteImuMeasurementsUntil);
-//
-//        // saving optimized state and saving it in OptimizationResults struct
-//        {
-//
-//            estimator_.get_T_WS(multiFrame->id(), lastOptimized_T_WS_);
-//            estimator_.getSpeedAndBias(multiFrame->id(), 0,
-//                                       lastOptimizedSpeedAndBiases_);
-//            lastOptimizedStateTimestamp_ = multiFrame->timestamp();
-//
-//            // if we publish the state after each IMU propagation we do not need to publish it here.
-//            if (!parameters_.publishing.publishImuPropagatedState) {
-//                result.T_WS = lastOptimized_T_WS_;
-//                result.speedAndBiases = lastOptimizedSpeedAndBiases_;
-//                result.stamp = lastOptimizedStateTimestamp_;
-//                result.onlyPublishLandmarks = false;
-//            }
-//            else
-//                result.onlyPublishLandmarks = true;
-//            estimator_.getLandmarks(result.landmarksVector);
-//
-//            repropagationNeeded_ = true;
-//        }
-//
-//        /***************  Visualization ***************/
-//        VioVisualizer::VisualizationData::Ptr visualizationDataPtr;
-//
-//        if (parameters_.visualization.displayImages) {
-//            // fill in information that requires access to estimator.
-//            visualizationDataPtr = VioVisualizer::VisualizationData::Ptr(
-//                    new VioVisualizer::VisualizationData());
-//            visualizationDataPtr->observations.resize(multiFrame->numKeypoints());
-//            okvis::MapPoint landmark;
-//            okvis::ObservationVector::iterator it = visualizationDataPtr
-//                    ->observations.begin();
-//            for (size_t camIndex = 0; camIndex < multiFrame->numFrames();
-//                 ++camIndex) {
-//                for (size_t k = 0; k < multiFrame->numKeypoints(camIndex); ++k) {
-//                    OKVIS_ASSERT_TRUE_DBG(Exception,it != visualizationDataPtr->observations.end(),"Observation-vector not big enough");
-//                    it->keypointIdx = k;
-//                    multiFrame->getKeypoint(camIndex, k, it->keypointMeasurement);
-//                    multiFrame->getKeypointSize(camIndex, k, it->keypointSize);
-//                    it->cameraIdx = camIndex;
-//                    it->frameId = multiFrame->id();
-//                    it->landmarkId = multiFrame->landmarkId(camIndex, k);
-//                    if (estimator_.isLandmarkAdded(it->landmarkId)) {
-//                        estimator_.getLandmark(it->landmarkId, landmark);
-//                        it->landmark_W = landmark.point;
-//                        if (estimator_.isLandmarkInitialized(it->landmarkId))
-//                            it->isInitialized = true;
-//                        else
-//                            it->isInitialized = false;
-//                    } else {
-//                        it->landmark_W = Eigen::Vector4d(0, 0, 0, 0);  // set to infinity to tell visualizer that landmark is not added
-//                    }
-//                    ++it;
-//                }
-//            }
-//            visualizationDataPtr->keyFrames = estimator_.multiFrame(
-//                    estimator_.currentKeyframeId());
-//            estimator_.get_T_WS(estimator_.currentKeyframeId(),
-//                                visualizationDataPtr->T_WS_keyFrame);
-//
-//
-//            okvis::VioVisualizer visualizer_(parameters_);
-//
-//            //visualizer_.showDebugImages(new_data);
-//            std::vector<cv::Mat> out_images(parameters_.nCameraSystem.numCameras());
-//            for (size_t i = 0; i < parameters_.nCameraSystem.numCameras(); ++i) {
-//                out_images[i] = visualizer_.drawMatches(visualizationDataPtr, i);
-//            }
-//            displayImages_ = out_images;
-//            display();
-//        }
+        /***************  optimization and marginalisation ***************/
+        okvis::Time deleteImuMeasurementsUntil(0, 0);
+
+        OptimizationResults result;
+        estimator_.optimize(parameters_.optimization.max_iterations, 2, false);
+
+        // get timestamp of last frame in IMU window. Need to do this before marginalization as it will be removed there (if not keyframe)
+        if (estimator_.numFrames()
+            > size_t(parameters_.optimization.numImuFrames)) {
+            deleteImuMeasurementsUntil = estimator_.multiFrame(
+                            estimator_.frameIdByAge(parameters_.optimization.numImuFrames))
+                                                 ->timestamp() - temporal_imu_data_overlap;
+        }
+
+        estimator_.applyMarginalizationStrategy(
+                parameters_.optimization.numKeyframes,
+                parameters_.optimization.numImuFrames, result.transferredLandmarks);
 
 
+        // now actually remove measurements
+        deleteImuMeasurements(deleteImuMeasurementsUntil);
+
+        // saving optimized state and saving it in OptimizationResults struct
+        {
+
+            estimator_.get_T_WS(multiFrame->id(), lastOptimized_T_WS_);
+            estimator_.getSpeedAndBias(multiFrame->id(), 0,
+                                       lastOptimizedSpeedAndBiases_);
+            lastOptimizedStateTimestamp_ = multiFrame->timestamp();
+
+            result.onlyPublishLandmarks = true;
+            estimator_.getLandmarks(result.landmarksVector);
+
+            repropagationNeeded_ = true;
+        }
+
+        /***************  Visualization ***************/
+        VioVisualizer::VisualizationData::Ptr visualizationDataPtr;
+
+        if (parameters_.visualization.displayImages) {
+            // fill in information that requires access to estimator.
+            visualizationDataPtr = VioVisualizer::VisualizationData::Ptr(
+                    new VioVisualizer::VisualizationData());
+            visualizationDataPtr->observations.resize(multiFrame->numKeypoints());
+            okvis::MapPoint landmark;
+            okvis::ObservationVector::iterator it = visualizationDataPtr
+                    ->observations.begin();
+            for (size_t camIndex = 0; camIndex < multiFrame->numFrames();
+                 ++camIndex) {
+                for (size_t k = 0; k < multiFrame->numKeypoints(camIndex); ++k) {
+                    OKVIS_ASSERT_TRUE_DBG(Exception,it != visualizationDataPtr->observations.end(),"Observation-vector not big enough");
+                    it->keypointIdx = k;
+                    multiFrame->getKeypoint(camIndex, k, it->keypointMeasurement);
+                    multiFrame->getKeypointSize(camIndex, k, it->keypointSize);
+                    it->cameraIdx = camIndex;
+                    it->frameId = multiFrame->id();
+                    it->landmarkId = multiFrame->landmarkId(camIndex, k);
+                    if (estimator_.isLandmarkAdded(it->landmarkId)) {
+                        estimator_.getLandmark(it->landmarkId, landmark);
+                        it->landmark_W = landmark.point;
+                        if (estimator_.isLandmarkInitialized(it->landmarkId))
+                            it->isInitialized = true;
+                        else
+                            it->isInitialized = false;
+                    } else {
+                        it->landmark_W = Eigen::Vector4d(0, 0, 0, 0);  // set to infinity to tell visualizer that landmark is not added
+                    }
+                    ++it;
+                }
+            }
+            visualizationDataPtr->keyFrames = estimator_.multiFrame(
+                    estimator_.currentKeyframeId());
+            estimator_.get_T_WS(estimator_.currentKeyframeId(),
+                                visualizationDataPtr->T_WS_keyFrame);
+
+            visualizationDataPtr->currentFrames = multiFrame;
 
 
+            okvis::VioVisualizer visualizer_(parameters_);
+
+            //visualizer_.showDebugImages(new_data);
+            std::vector<cv::Mat> out_images(parameters_.nCameraSystem.numCameras());
+            for (size_t i = 0; i < parameters_.nCameraSystem.numCameras(); ++i) {
+                out_images[i] = visualizer_.drawMatches(visualizationDataPtr, i);
+            }
+            displayImages_ = out_images;
+            display();
 
 
-        cv::imshow("image0", multiFrame->image(0));
-        cv::imshow("image1", multiFrame->image(1));
-        cv::waitKey(2);
+        }
 
-
+//            cv::imshow("image0", visualizationDataPtr->keyFrames->image(0));
+//            cv::imshow("image1", visualizationDataPtr->keyFrames->image(1));
+//            cv::waitKey(2);
         return true;
     }
 
