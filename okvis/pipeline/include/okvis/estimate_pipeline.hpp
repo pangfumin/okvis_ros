@@ -231,9 +231,27 @@ namespace okvis {
 
         void display();
 
+        /**
+       * @brief Get a subset of the recorded IMU measurements.
+       * @param start The first IMU measurement in the return value will be older than this timestamp.
+       * @param end The last IMU measurement in the return value will be newer than this timestamp.
+       * @remark This function is threadsafe.
+       * @return The IMU Measurement spanning at least the time between start and end.
+       */
+        okvis::ImuMeasurementDeque getImuMeasurments(okvis::Time& start,
+                                                     okvis::Time& end);
+
+        /**
+         * @brief Remove IMU measurements from the internal buffer.
+         * @param eraseUntil Remove all measurements that are strictly older than this time.
+         * @return The number of IMU measurements that have been removed
+         */
+        int deleteImuMeasurements(const okvis::Time& eraseUntil);
+
 
     private:
         void init();
+
 
         struct OptimizationResults {
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW
