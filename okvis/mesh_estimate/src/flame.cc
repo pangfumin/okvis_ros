@@ -243,8 +243,8 @@ bool Flame::update(double time, uint32_t img_id,
 
   // Load epipolar geometry between previous and new frame.
   Sophus::SE3f T_prev_to_new = fnew_->pose.inverse() * fprev_->pose;
-  epigeo_.loadGeometry(T_prev_to_new.unit_quaternion(),
-                       T_prev_to_new.translation());
+//  epigeo_.loadGeometry(T_prev_to_new.unit_quaternion(),
+//                       T_prev_to_new.translation());
 
   /*==================== Add new features ====================*/
   new_feats_mtx_.lock();

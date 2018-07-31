@@ -268,6 +268,11 @@ include_directories(okvis_multisensor_processing/include)
 add_subdirectory(okvis_multisensor_processing)
 add_dependencies(okvis_multisensor_processing okvis_util)
 
+
+include_directories(pipeline/include)
+add_subdirectory(pipeline)
+add_dependencies(pipeline okvis_util)
+
 # also build the apps
 if(BUILD_APPS)
  find_package( OpenCV COMPONENTS core highgui imgproc features2d REQUIRED )
@@ -293,6 +298,24 @@ if(BUILD_APPS)
     ${OpenCV_LIBRARIES} 
     ${Boost_LIBRARIES}
   )
+
+ add_executable(okvis_app_pipeline okvis_apps/src/okvis_app_pipeline.cpp)
+ target_link_libraries(okvis_app_pipeline
+         okvis_util
+         okvis_kinematics
+         okvis_time
+         okvis_cv
+         okvis_common
+         okvis_ceres
+         okvis_timing
+         okvis_matcher
+         okvis_frontend
+         pipeline
+         pthread
+         ${OpenCV_LIBRARIES}
+         ${Boost_LIBRARIES}
+         )
+
   if(${VISENSORDRIVER_FOUND})
     target_link_libraries(okvis_app_synchronous ${VISensorDriver_LIBRARY})
   endif()
@@ -316,6 +339,7 @@ export (TARGETS
     okvis_frontend
     okvis_multisensor_processing
         mesh_estimate
+        pipeline
     FILE "${PROJECT_BINARY_DIR}/okvisTargets.cmake")
 export ( PACKAGE okvis )
 
@@ -335,6 +359,7 @@ set(CONF_INCLUDE_DIRS
   "${PROJECT_SOURCE_DIR}/okvis_frontend/include"
   "${PROJECT_SOURCE_DIR}/okvis_multisensor_processing/include"
   "${PROJECT_SOURCE_DIR}/mesh_estimate/include"
+  "${PROJECT_SOURCE_DIR}/pipeline/include"
   "${PROJECT_BINARY_DIR}"
 )
 configure_file(cmake/okvisConfig.cmake.in
