@@ -154,7 +154,6 @@ class Flame final {
    */
   void updatePoseFramePoses(const std::vector<uint32_t>& pf_ids,
                            const std::vector<Sophus::SE3f>& pf_poses) {
-    std::lock_guard<std::mutex> pfs_lock(pfs_mtx_);
     for (int ii = 0; ii < pf_ids.size(); ++ii) {
       if (pfs_.count(pf_ids[ii]) > 0) {
         pfs_[pf_ids[ii]]->pose =  pf_poses[ii];
@@ -510,7 +509,6 @@ class Flame final {
 
   // PoseFrames.
   FrameIDToFrame pfs_; // Main container for pfs.
-  std::mutex pfs_mtx_; // Locks pfs_ container.
   utils::Frame::Ptr curr_pf_; // Pointer to the current poseframe.
 
 

@@ -60,7 +60,6 @@ Flame::Flame(int width, int height,
     fprev_(nullptr),
     update_mtx_(),
     pfs_(),
-    pfs_mtx_(),
     curr_pf_(nullptr),
     new_feats_(),
     photo_error_(height, width, std::numeric_limits<float>::quiet_NaN()),
@@ -147,9 +146,7 @@ bool Flame::update(double time, uint32_t img_id,
 
   if (is_poseframe) {
     // Add to poseframes.
-    pfs_mtx_.lock();
     pfs_[fnew_->id] = fnew_;
-    pfs_mtx_.unlock();
 
     curr_pf_ = fnew_;
   }
@@ -178,9 +175,7 @@ bool Flame::update(double time, uint32_t img_id,
 
     data.prev = *fprev_;
 
-    pfs_mtx_.lock();
     int num_pfs = pfs_.size();
-    pfs_mtx_.unlock();
 
     // Fill in comparison frame info.
     utils::Frame::ConstPtr fcmp;
@@ -189,7 +184,6 @@ bool Flame::update(double time, uint32_t img_id,
       fcmp = fprev_;
     } else {
       // Pick best comparison frame.
-      std::lock_guard<std::mutex> lock(pfs_mtx_);
       fcmp = getPoseFrame(params_, K_, Kinv_,
                           pfs_, *curr_pf_,
                           params_.photo_error_num_pfs, &stats_);
@@ -211,10 +205,8 @@ bool Flame::update(double time, uint32_t img_id,
 
     // Project features into current frame.
     if (feats_.size() > 0) {
-      pfs_mtx_.lock();
       projectFeatures(params_, K_, Kinv_, pfs_, *curr_pf_, &feats_, &feats_in_curr_,
                       &stats_);
-      pfs_mtx_.unlock();
 
       // Fill in features projected into poseframe.
       data.ref_xy.resize(feats_in_curr_.size());
@@ -243,11 +235,9 @@ bool Flame::update(double time, uint32_t img_id,
 
   /*==================== Update features ====================*/
   // Update depth estimates.
-  pfs_mtx_.lock();
   bool idepth_success = updateFeatureIDepths(params_, K_, Kinv_, pfs_, *fnew_,
                                              *curr_pf_, &feats_, &stats_,
                                              &debug_img_matches_);
-  pfs_mtx_.unlock();
 
   if (!idepth_success) {
     // No idepths could be updated.
@@ -255,10 +245,8 @@ bool Flame::update(double time, uint32_t img_id,
   }
 
   // Project features into current frame.
-  pfs_mtx_.lock();
   projectFeatures(params_, K_, Kinv_, pfs_, *fnew_, &feats_, &feats_in_curr_,
                   &stats_);
-  pfs_mtx_.unlock();
 
   if (feats_.size() < 3) {
     // Not enough detections.
@@ -289,14 +277,12 @@ bool Flame::update(double time, uint32_t img_id,
   /*==================== Synchronize graph ====================*/
   // Update and synchronize graph and features.
   graph_mtx_.lock();
-  pfs_mtx_.lock();
   triangulator_mtx_.lock();
   bool sync_success = syncGraph(params_, Kinv_, pfs_, idepthmap_, feats_,
                                 feats_in_curr_, &triangulator_,
                                 &graph_, graph_scale_,
                                 &feat_to_vtx_, &vtx_to_feat_, &stats_);
   triangulator_mtx_.unlock();
-  pfs_mtx_.unlock();
   graph_mtx_.unlock();
 
   if (!sync_success) {
@@ -439,11 +425,9 @@ bool Flame::update(double time, uint32_t img_id,
     data.prev = *fprev_;
 
     // Fill in comparison frame info.
-    pfs_mtx_.lock();
     utils::Frame::ConstPtr fcmp = getPoseFrame(params_, K_, Kinv_,
                                                pfs_, *curr_pf_,
                                                params_.photo_error_num_pfs, &stats_);
-    pfs_mtx_.unlock();
 
     FLAME_ASSERT(fcmp->id != curr_pf_->id);
 
