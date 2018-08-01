@@ -284,7 +284,6 @@ class Flame final {
 
   // Access debug images.
   const Image3b& getDebugImageDetections() {
-    std::lock_guard<std::mutex> lock(detection_queue_mtx_);
     return debug_img_detections_;
   }
   const Image3b& getDebugImageWireframe() {
@@ -309,10 +308,10 @@ class Flame final {
   }
 
  private:
-  // Main detection loop.
-  void detectionLoop();
 
-  // Synchronizes graph with updated features.
+    void detectFeatures(DetectionData& data);
+
+    // Synchronizes graph with updated features.
   void graphSyncLoop();
 
   // Get the best poseframe for frame fnew.
@@ -516,11 +515,6 @@ class Flame final {
   std::mutex pfs_mtx_; // Locks pfs_ container.
   utils::Frame::Ptr curr_pf_; // Pointer to the current poseframe.
 
-  // Feature detection stuff.
-  std::thread detection_thread_;
-  std::deque<DetectionData> detection_queue_; // Queue that holds DetectionData. Need deque instead of queue so we can iterate.
-  std::mutex detection_queue_mtx_; // Locks detection_queue_.
-  std::condition_variable detection_queue_cv_; // Signals when there are new items in detection queue.
 
   std::vector<FeatureWithIDepth> new_feats_; // Newly detected features.
   std::mutex new_feats_mtx_; // Locks new_feats_ container.

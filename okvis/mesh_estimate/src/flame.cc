@@ -62,10 +62,6 @@ Flame::Flame(int width, int height,
     pfs_(),
     pfs_mtx_(),
     curr_pf_(nullptr),
-    detection_thread_(),
-    detection_queue_(),
-    detection_queue_mtx_(),
-    detection_queue_cv_(),
     new_feats_(),
     new_feats_mtx_(),
     photo_error_(height, width, std::numeric_limits<float>::quiet_NaN()),
@@ -111,8 +107,7 @@ Flame::Flame(int width, int height,
       });
   }
 
-  // Start feature detection thread.
-  detection_thread_ = std::thread([this]() { detectionLoop(); });
+
 
   return;
 }
@@ -120,7 +115,6 @@ Flame::Flame(int width, int height,
 Flame::~Flame() {
   std::lock_guard<std::mutex> guard(graph_mtx_);
   graph_thread_.join();
-  detection_thread_.join();
   return;
 }
 
@@ -230,15 +224,17 @@ bool Flame::update(double time, uint32_t img_id,
       }
     }
 
-    // Add to detection_queue.
-    detection_queue_mtx_.lock();
-    detection_queue_.push_back(data);
-    detection_queue_mtx_.unlock();
+//    // Add to detection_queue.
+//    detection_queue_mtx_.lock();
+//    detection_queue_.push_back(data);
+//    detection_queue_mtx_.unlock();
+//
+//    // Signal detection thread that it has new poseframes for which to detect
+//    // features. Note that we need to unlock the detection_queue_mtx before sending
+//    // the signal so that we don't wake up a thread and then immediately block.
+//    detection_queue_cv_.notify_one();
 
-    // Signal detection thread that it has new poseframes for which to detect
-    // features. Note that we need to unlock the detection_queue_mtx before sending
-    // the signal so that we don't wake up a thread and then immediately block.
-    detection_queue_cv_.notify_one();
+    detectFeatures(data);
   }
 
   // Load epipolar geometry between previous and new frame.
@@ -476,15 +472,8 @@ bool Flame::update(double time, uint32_t img_id,
       data.ref_xy[ii] = feats_in_curr_[ii].xy;
     }
 
-    // Add to detection_queue.
-    detection_queue_mtx_.lock();
-    detection_queue_.push_back(data);
-    detection_queue_mtx_.unlock();
+    detectFeatures(data);
 
-    // Signal detection thread that it has new poseframes for which to detect
-    // features. Note that we need to unlock the detection_queue_mtx before sending
-    // the signal so that we don't wake up a thread and then immediately block.
-    detection_queue_cv_.notify_one();
   }
 
   /*==================== Draw stuff ====================*/
@@ -550,227 +539,196 @@ bool Flame::update(double time, uint32_t img_id,
 
   return true;
 }
+//
+//void Flame::prunePoseFrames(const std::vector<uint32_t>& pfs_to_keep) {
+//  // Locking the update_mtx_ might be overkill. We really just need to lock
+//  // feats_, new_feats_, and pfs_, and detection_queue_.
+//  std::lock_guard<std::recursive_mutex> update_lock(update_mtx_);
+//  std::lock_guard<std::mutex> detection_lock(detection_queue_mtx_);
+//  std::lock_guard<std::mutex> pfs_lock(pfs_mtx_);
+//  std::lock_guard<std::mutex> new_feats_lock(new_feats_mtx_);
+//
+//  FrameIDToFrame pruned_pfs;
+//  bool found_curr_pf = false; // Make sure the current poseframe is in the list.
+//  for (int ii = 0; ii < pfs_to_keep.size(); ++ii) {
+//    if (pfs_.count(pfs_to_keep[ii]) > 0) {
+//      pruned_pfs[pfs_to_keep[ii]] = pfs_[pfs_to_keep[ii]];
+//      if (pfs_to_keep[ii] == curr_pf_->id) {
+//        found_curr_pf = true;
+//      }
+//    }
+//  }
+//
+//  if (!found_curr_pf) {
+//    if (!params_.debug_quiet) {
+//      fprintf(stderr, "Flame[FAIL]: Current poseframe is not in to_keep list. Not updating poses.\n");
+//    }
+//    return;
+//  }
+//
+//  // Remove any detection data items if any pfs are deleted.
+//  std::deque<DetectionData> pruned_detection_data;
+//  for (const auto& data : detection_queue_) {
+//    if ((pruned_pfs.count(data.ref.id) > 0) &&
+//        (pruned_pfs.count(data.cmp.id) > 0)) {
+//      // Both pfs still exist. Add to queue.
+//      pruned_detection_data.push_back(data);
+//    }
+//  }
+//  detection_queue_.swap(pruned_detection_data);
+//
+//  if (pruned_pfs.size() == 0) {
+//    // No more pfs. Reset.
+//    clear();
+//    return;
+//  }
+//
+//  int row_offset = 0;
+//  if (params_.do_letterbox) {
+//    // Only detect features in middle third of image.
+//    row_offset = height_/3;
+//  }
+//
+//  // Move features whose parent pose has been deleted to new oldest pf.
+//  int border = params_.rescale_factor_max * params_.fparams.win_size / 2 + 1;
+//  cv::Rect valid_region(border, border + row_offset,
+//                        width_ - 2*border, height_ - 2*border - 2*row_offset);
+//  auto pfit = pruned_pfs.crbegin(); // Pointer to now oldest pf.
+//  for (int ii = 0; ii < feats_.size(); ++ii) {
+//    auto& feat = feats_[ii];
+//    if (pruned_pfs.count(feat.frame_id) == 0) {
+//      stereo::EpipolarGeometry<float> epipf(K_, Kinv_);
+//      Sophus::SE3f T_old_to_new = pfit->second->pose.inverse() *
+//          pfs_[feat.frame_id]->pose;
+//      epipf.loadGeometry(T_old_to_new.unit_quaternion(),
+//                         T_old_to_new.translation());
+//
+//      cv::Point2f u_pf;
+//      float idepth_pf, var_pf;
+//      bool move_success =
+//          stereo::inverse_depth_filter::predict(epipf,
+//                                                params_.fparams.process_var_factor,
+//                                                feat.xy,
+//                                                feat.idepth_mu,
+//                                                feat.idepth_var,
+//                                                &u_pf, &idepth_pf, &var_pf);
+//
+//      feat.frame_id = pfit->second->id;
+//      feat.xy = u_pf;
+//      float old_idepth = feat.idepth_mu;
+//      feat.idepth_mu = idepth_pf;
+//
+//      // Project idepth variance.
+//      float var_factor4 = idepth_pf / old_idepth;
+//      var_factor4 *= var_factor4;
+//      var_factor4 *= var_factor4;
+//
+//      if (idepth_pf < 1e-6) {
+//        // If feat_ref.idepth_mu == 0, then var_factor4 is inf.
+//        var_factor4 = 1;
+//      }
+//      feat.idepth_var *= var_factor4;
+//
+//      if (!move_success || !valid_region.contains(u_pf)) {
+//        // Move wasn't successful or pixel projected OOB.
+//        feat.valid = false;
+//        continue;
+//      }
+//    }
+//    FLAME_ASSERT(pruned_pfs.count(feat.frame_id) > 0);
+//    FLAME_ASSERT(pruned_pfs.count(feats_[ii].frame_id) > 0);
+//  }
+//
+//  // Do the same for new features.
+//  std::vector<FeatureWithIDepth> pruned_new_feats;
+//  pruned_new_feats.reserve(new_feats_.size()); // Copy instead of marking invalid.
+//  for (int ii = 0; ii < new_feats_.size(); ++ii) {
+//    auto& feat = new_feats_[ii];
+//    if (pruned_pfs.count(feat.frame_id) == 0) {
+//      stereo::EpipolarGeometry<float> epipf(K_, Kinv_);
+//      Sophus::SE3f T_old_to_new = pfit->second->pose.inverse() *
+//          pfs_[feat.frame_id]->pose;
+//      epipf.loadGeometry(T_old_to_new.unit_quaternion(),
+//                         T_old_to_new.translation());
+//
+//      cv::Point2f u_pf;
+//      float idepth_pf, var_pf;
+//      bool move_success =
+//          stereo::inverse_depth_filter::predict(epipf,
+//                                                params_.fparams.process_var_factor,
+//                                                feat.xy,
+//                                                feat.idepth_mu,
+//                                                feat.idepth_var,
+//                                                &u_pf, &idepth_pf, &var_pf);
+//
+//      if (!move_success || !valid_region.contains(u_pf)) {
+//        // Remove this feature.
+//        continue;
+//      }
+//
+//      feat.frame_id = pfit->second->id;
+//      feat.xy = u_pf;
+//      float old_idepth = feat.idepth_mu;
+//      feat.idepth_mu = idepth_pf;
+//
+//      // Project idepth variance.
+//      float var_factor4 = idepth_pf / old_idepth;
+//      var_factor4 *= var_factor4;
+//      var_factor4 *= var_factor4;
+//
+//      if (idepth_pf < 1e-6) {
+//        // If feat_ref.idepth_mu == 0, then var_factor4 is inf.
+//        var_factor4 = 1;
+//      }
+//      feat.idepth_var *= var_factor4;
+//    }
+//
+//    // Push back updated feature.
+//    pruned_new_feats.push_back(feat);
+//  }
+//  new_feats_.swap(pruned_new_feats);
+//
+//  // Swap the maps.
+//  pfs_.swap(pruned_pfs);
+//
+//  return;
+//}
 
-void Flame::prunePoseFrames(const std::vector<uint32_t>& pfs_to_keep) {
-  // Locking the update_mtx_ might be overkill. We really just need to lock
-  // feats_, new_feats_, and pfs_, and detection_queue_.
-  std::lock_guard<std::recursive_mutex> update_lock(update_mtx_);
-  std::lock_guard<std::mutex> detection_lock(detection_queue_mtx_);
-  std::lock_guard<std::mutex> pfs_lock(pfs_mtx_);
-  std::lock_guard<std::mutex> new_feats_lock(new_feats_mtx_);
 
-  FrameIDToFrame pruned_pfs;
-  bool found_curr_pf = false; // Make sure the current poseframe is in the list.
-  for (int ii = 0; ii < pfs_to_keep.size(); ++ii) {
-    if (pfs_.count(pfs_to_keep[ii]) > 0) {
-      pruned_pfs[pfs_to_keep[ii]] = pfs_[pfs_to_keep[ii]];
-      if (pfs_to_keep[ii] == curr_pf_->id) {
-        found_curr_pf = true;
-      }
-    }
+void Flame::detectFeatures(DetectionData& data) {
+  // Detect new features if this is a poseframe.
+  std::vector<cv::Point2f> new_feats;
+  if (params_.continuous_detection ||
+      (!params_.continuous_detection && (num_data_updates_ < 1))) {
+    detectFeatures(params_, K_, Kinv_,
+                   data.ref, data.prev, data.cmp, data.ref.idepthmap[0],
+                   data.ref_xy, &photo_error_,
+                   &new_feats, &stats_, &debug_img_detections_);
   }
 
-  if (!found_curr_pf) {
-    if (!params_.debug_quiet) {
-      fprintf(stderr, "Flame[FAIL]: Current poseframe is not in to_keep list. Not updating poses.\n");
-    }
-    return;
-  }
+  // Add new features to list.
+  new_feats_mtx_.lock();
+  for (int ii = 0; ii < new_feats.size(); ++ii) {
+    FeatureWithIDepth newf;
+    newf.id = feat_count_++;
+    newf.frame_id = data.ref.id;
+    newf.xy = new_feats[ii];
+    newf.idepth_var = params_.idepth_var_init;
+    newf.valid = true;
+    newf.num_updates = 0;
 
-  // Remove any detection data items if any pfs are deleted.
-  std::deque<DetectionData> pruned_detection_data;
-  for (const auto& data : detection_queue_) {
-    if ((pruned_pfs.count(data.ref.id) > 0) &&
-        (pruned_pfs.count(data.cmp.id) > 0)) {
-      // Both pfs still exist. Add to queue.
-      pruned_detection_data.push_back(data);
-    }
-  }
-  detection_queue_.swap(pruned_detection_data);
-
-  if (pruned_pfs.size() == 0) {
-    // No more pfs. Reset.
-    clear();
-    return;
-  }
-
-  int row_offset = 0;
-  if (params_.do_letterbox) {
-    // Only detect features in middle third of image.
-    row_offset = height_/3;
-  }
-
-  // Move features whose parent pose has been deleted to new oldest pf.
-  int border = params_.rescale_factor_max * params_.fparams.win_size / 2 + 1;
-  cv::Rect valid_region(border, border + row_offset,
-                        width_ - 2*border, height_ - 2*border - 2*row_offset);
-  auto pfit = pruned_pfs.crbegin(); // Pointer to now oldest pf.
-  for (int ii = 0; ii < feats_.size(); ++ii) {
-    auto& feat = feats_[ii];
-    if (pruned_pfs.count(feat.frame_id) == 0) {
-      stereo::EpipolarGeometry<float> epipf(K_, Kinv_);
-      Sophus::SE3f T_old_to_new = pfit->second->pose.inverse() *
-          pfs_[feat.frame_id]->pose;
-      epipf.loadGeometry(T_old_to_new.unit_quaternion(),
-                         T_old_to_new.translation());
-
-      cv::Point2f u_pf;
-      float idepth_pf, var_pf;
-      bool move_success =
-          stereo::inverse_depth_filter::predict(epipf,
-                                                params_.fparams.process_var_factor,
-                                                feat.xy,
-                                                feat.idepth_mu,
-                                                feat.idepth_var,
-                                                &u_pf, &idepth_pf, &var_pf);
-
-      feat.frame_id = pfit->second->id;
-      feat.xy = u_pf;
-      float old_idepth = feat.idepth_mu;
-      feat.idepth_mu = idepth_pf;
-
-      // Project idepth variance.
-      float var_factor4 = idepth_pf / old_idepth;
-      var_factor4 *= var_factor4;
-      var_factor4 *= var_factor4;
-
-      if (idepth_pf < 1e-6) {
-        // If feat_ref.idepth_mu == 0, then var_factor4 is inf.
-        var_factor4 = 1;
-      }
-      feat.idepth_var *= var_factor4;
-
-      if (!move_success || !valid_region.contains(u_pf)) {
-        // Move wasn't successful or pixel projected OOB.
-        feat.valid = false;
-        continue;
-      }
-    }
-    FLAME_ASSERT(pruned_pfs.count(feat.frame_id) > 0);
-    FLAME_ASSERT(pruned_pfs.count(feats_[ii].frame_id) > 0);
-  }
-
-  // Do the same for new features.
-  std::vector<FeatureWithIDepth> pruned_new_feats;
-  pruned_new_feats.reserve(new_feats_.size()); // Copy instead of marking invalid.
-  for (int ii = 0; ii < new_feats_.size(); ++ii) {
-    auto& feat = new_feats_[ii];
-    if (pruned_pfs.count(feat.frame_id) == 0) {
-      stereo::EpipolarGeometry<float> epipf(K_, Kinv_);
-      Sophus::SE3f T_old_to_new = pfit->second->pose.inverse() *
-          pfs_[feat.frame_id]->pose;
-      epipf.loadGeometry(T_old_to_new.unit_quaternion(),
-                         T_old_to_new.translation());
-
-      cv::Point2f u_pf;
-      float idepth_pf, var_pf;
-      bool move_success =
-          stereo::inverse_depth_filter::predict(epipf,
-                                                params_.fparams.process_var_factor,
-                                                feat.xy,
-                                                feat.idepth_mu,
-                                                feat.idepth_var,
-                                                &u_pf, &idepth_pf, &var_pf);
-
-      if (!move_success || !valid_region.contains(u_pf)) {
-        // Remove this feature.
-        continue;
-      }
-
-      feat.frame_id = pfit->second->id;
-      feat.xy = u_pf;
-      float old_idepth = feat.idepth_mu;
-      feat.idepth_mu = idepth_pf;
-
-      // Project idepth variance.
-      float var_factor4 = idepth_pf / old_idepth;
-      var_factor4 *= var_factor4;
-      var_factor4 *= var_factor4;
-
-      if (idepth_pf < 1e-6) {
-        // If feat_ref.idepth_mu == 0, then var_factor4 is inf.
-        var_factor4 = 1;
-      }
-      feat.idepth_var *= var_factor4;
-    }
-
-    // Push back updated feature.
-    pruned_new_feats.push_back(feat);
-  }
-  new_feats_.swap(pruned_new_feats);
-
-  // Swap the maps.
-  pfs_.swap(pruned_pfs);
-
-  return;
-}
-
-void Flame::detectionLoop() {
-  while (true) {
-    //std::cout << "detectionLoop ... " << std::endl;
-    // Wait for new items.
-    std::unique_lock<std::mutex> lock(detection_queue_mtx_);
-    detection_queue_cv_.wait(lock, [this]() {
-        return detection_queue_.size() > 0;
-      });
-
-    if (!params_.debug_quiet) {
-      printf("I HAS %i POSEFRAMES\n", detection_queue_.size());
-    }
-
-    while (detection_queue_.size() > 0) {
-      stats_.tick("detection_loop");
-
-      // Grab poseframe.
-      const auto& data = detection_queue_.front();
-
-      // Detect new features if this is a poseframe.
-      std::vector<cv::Point2f> new_feats;
-      if (params_.continuous_detection ||
-          (!params_.continuous_detection && (num_data_updates_ < 1))) {
-        detectFeatures(params_, K_, Kinv_,
-                       data.ref, data.prev, data.cmp, data.ref.idepthmap[0],
-                       data.ref_xy, &photo_error_,
-                       &new_feats, &stats_, &debug_img_detections_);
-      }
-
-      // Add new features to list.
-      new_feats_mtx_.lock();
-      for (int ii = 0; ii < new_feats.size(); ++ii) {
-        FeatureWithIDepth newf;
-        newf.id = feat_count_++;
-        newf.frame_id = data.ref.id;
-        newf.xy = new_feats[ii];
-        newf.idepth_var = params_.idepth_var_init;
-        newf.valid = true;
-        newf.num_updates = 0;
-
-        // Initialize idepth from dense idepthmap if possible.
-        newf.idepth_mu =  params_.idepth_init;
-        int x = utils::fast_roundf(newf.xy.x);
-        int y = utils::fast_roundf(newf.xy.y);
-        if (!std::isnan(data.ref.idepthmap[0](y, x))) {
-          newf.idepth_mu = data.ref.idepthmap[0](y, x);
-        }
-
-        new_feats_.push_back(newf);
-      }
-      new_feats_mtx_.unlock();
-
-      // Remove poseframe from featureless list.
-      detection_queue_.pop_front();
-
-      stats_.tock("detection_loop");
-      if (!params_.debug_quiet && params_.debug_print_timing_detection_loop) {
-        printf("Flame/detection_loop = %f ms\n",
-               stats_.timings("detection_loop"));
-      }
+    // Initialize idepth from dense idepthmap if possible.
+    newf.idepth_mu =  params_.idepth_init;
+    int x = utils::fast_roundf(newf.xy.x);
+    int y = utils::fast_roundf(newf.xy.y);
+    if (!std::isnan(data.ref.idepthmap[0](y, x))) {
+      newf.idepth_mu = data.ref.idepthmap[0](y, x);
     }
 
-    std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+    new_feats_.push_back(newf);
   }
+  new_feats_mtx_.unlock();
 
-  return;
 }
 
 utils::Frame::ConstPtr Flame::getPoseFrame(const Params& params,
