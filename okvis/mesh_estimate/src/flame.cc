@@ -63,7 +63,6 @@ Flame::Flame(int width, int height,
     pfs_mtx_(),
     curr_pf_(nullptr),
     new_feats_(),
-    new_feats_mtx_(),
     photo_error_(height, width, std::numeric_limits<float>::quiet_NaN()),
     feat_count_(0),
     feats_(),
@@ -224,16 +223,6 @@ bool Flame::update(double time, uint32_t img_id,
       }
     }
 
-//    // Add to detection_queue.
-//    detection_queue_mtx_.lock();
-//    detection_queue_.push_back(data);
-//    detection_queue_mtx_.unlock();
-//
-//    // Signal detection thread that it has new poseframes for which to detect
-//    // features. Note that we need to unlock the detection_queue_mtx before sending
-//    // the signal so that we don't wake up a thread and then immediately block.
-//    detection_queue_cv_.notify_one();
-
     detectFeatures(data);
   }
 
@@ -243,17 +232,14 @@ bool Flame::update(double time, uint32_t img_id,
 //                       T_prev_to_new.translation());
 
   /*==================== Add new features ====================*/
-  new_feats_mtx_.lock();
   if ((feats_.size() == 0) && (new_feats_.size() == 0)) {
     // No features to add.
-    new_feats_mtx_.unlock();
     return false;
   }
 
   feats_.insert(feats_.end(), new_feats_.begin(), new_feats_.end());
   new_feats_.clear();
 
-  new_feats_mtx_.unlock();
 
   /*==================== Update features ====================*/
   // Update depth estimates.
@@ -707,7 +693,6 @@ void Flame::detectFeatures(DetectionData& data) {
   }
 
   // Add new features to list.
-  new_feats_mtx_.lock();
   for (int ii = 0; ii < new_feats.size(); ++ii) {
     FeatureWithIDepth newf;
     newf.id = feat_count_++;
@@ -727,8 +712,6 @@ void Flame::detectFeatures(DetectionData& data) {
 
     new_feats_.push_back(newf);
   }
-  new_feats_mtx_.unlock();
-
 }
 
 utils::Frame::ConstPtr Flame::getPoseFrame(const Params& params,

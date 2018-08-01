@@ -183,9 +183,7 @@ class Flame final {
 
     feats_.clear();
 
-    new_feats_mtx_.lock();
     new_feats_.clear();
-    new_feats_mtx_.unlock();
 
     graph_mtx_.lock();
     graph_.clear();
@@ -517,7 +515,6 @@ class Flame final {
 
 
   std::vector<FeatureWithIDepth> new_feats_; // Newly detected features.
-  std::mutex new_feats_mtx_; // Locks new_feats_ container.
 
   Image1f photo_error_; // Photometric error.
 
