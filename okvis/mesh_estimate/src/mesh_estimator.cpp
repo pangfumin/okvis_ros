@@ -24,11 +24,9 @@ namespace flame {
 
     }
 
-    void MeshEstimator::processFrame(const uint32_t img_id, const double time,
-                      const okvis::kinematics::Transformation& T_WC, const cv::Mat& img_gray) {
-
-
-
+    void MeshEstimator::processFrame( const double time,
+                      const okvis::kinematics::Transformation& T_WC,
+                                      const cv::Mat& img_gray, bool isKeyframe) {
 //
         /*==================== Process image ====================*/
         cv::Mat img_gray_undist;
@@ -39,19 +37,17 @@ namespace flame {
 //        std::cout<< pose.unit_quaternion().toRotationMatrix() << std::endl;
 
 
-        bool is_poseframe = (img_id_   % poseframe_subsample_factor_) == 0;
+        bool is_poseframe = isKeyframe;
 
         bool update_success = false;
 
-            update_success = sensor_->update(time, img_id_, pose.cast<float>(), img_gray_undist,
+        update_success = sensor_->update(time, img_id_, pose.cast<float>(), img_gray_undist,
                                              is_poseframe);
-
         img_id_ ++;
 //        if (!update_success) {
 //            //ROS_WARN("FlameOffline: Unsuccessful update.\n");
 //            return;
 //        }
-
         Image3b wireImage = sensor_->getDebugImageWireframe();
 //        Image3b wireImage = sensor_->getDebugImageFeatures();
         cv::imshow("wireImage", wireImage);

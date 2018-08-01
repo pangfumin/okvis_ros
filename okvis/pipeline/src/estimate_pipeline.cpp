@@ -195,6 +195,12 @@ namespace okvis {
         if (asKeyframe)
             estimator_.setKeyframe(multiFrame->id(), asKeyframe);
 
+        okvis::kinematics::Transformation T_WC0 = T_WS * (*parameters_.nCameraSystem.T_SC(0));
+        meshEstimatorPtr_->processFrame(multiFrame->timestamp().toSec(),
+                                        T_WC0, multiFrame->image(0), asKeyframe);
+
+
+
 
         /***************  optimization and marginalisation ***************/
         okvis::Time deleteImuMeasurementsUntil(0, 0);

@@ -11,8 +11,9 @@ namespace flame {
                       const Matrix3f& K, const Matrix3f& Kinv, const Vector4f& distort,
                       const Params& parameters = Params());
 
-        void processFrame(const uint32_t img_id, const double time,
-                          const okvis::kinematics::Transformation& T_WC, const cv::Mat& img_gray);
+        void processFrame(const double time,
+                          const okvis::kinematics::Transformation& T_WC,
+                          const cv::Mat& img_gray, bool isKeyframe);
 
 
         std::shared_ptr<flame::Flame> sensor_;
