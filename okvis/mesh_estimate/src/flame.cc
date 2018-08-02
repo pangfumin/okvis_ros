@@ -179,20 +179,9 @@ bool Flame::update(double time, uint32_t img_id,
 
     // Fill in comparison frame info.
     utils::Frame::ConstPtr fcmp;
-    if (num_pfs <= 1) {
-      // Not enough poseframes yet. Use previous frame as comparison frame.
-      fcmp = fprev_;
-    } else {
-      // Pick best comparison frame.
-      fcmp = getPoseFrame(params_, K_, Kinv_,
-                          pfs_, *curr_pf_,
-                          params_.photo_error_num_pfs, &stats_);
 
-      // Make sure we don't pick the same pf.
-      if (fcmp->id >= curr_pf_->id) {
-        fcmp = fprev_; // Use previous pf instead.
-      }
-    }
+    fcmp = fprev_;
+
 
     FLAME_ASSERT(fcmp != nullptr);
     FLAME_ASSERT(fcmp->id != curr_pf_->id);
@@ -425,11 +414,7 @@ bool Flame::update(double time, uint32_t img_id,
     data.prev = *fprev_;
 
     // Fill in comparison frame info.
-    utils::Frame::ConstPtr fcmp = getPoseFrame(params_, K_, Kinv_,
-                                               pfs_, *curr_pf_,
-                                               params_.photo_error_num_pfs, &stats_);
-
-    FLAME_ASSERT(fcmp->id != curr_pf_->id);
+    utils::Frame::ConstPtr fcmp = fprev_;
 
     data.cmp = *fcmp;
     for (int ii = 0; ii < fcmp->idepthmap.size(); ++ii) {
