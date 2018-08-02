@@ -241,6 +241,10 @@ add_dependencies(okvis_cv  okvis_util)
 include_directories(okvis_common/include)
 add_subdirectory(okvis_common)
 
+# FLAME
+include_directories(mesh_util/include)
+add_subdirectory(mesh_util)
+
 include_directories(okvis_ceres/include)
 add_subdirectory(okvis_ceres)
 add_dependencies(okvis_ceres  okvis_util)
@@ -338,6 +342,7 @@ export (TARGETS
     okvis_matcher
     okvis_frontend
     okvis_multisensor_processing
+        mesh_util
         mesh_estimate
         pipeline
     FILE "${PROJECT_BINARY_DIR}/okvisTargets.cmake")
@@ -358,6 +363,7 @@ set(CONF_INCLUDE_DIRS
   "${PROJECT_SOURCE_DIR}/okvis_matcher/include"
   "${PROJECT_SOURCE_DIR}/okvis_frontend/include"
   "${PROJECT_SOURCE_DIR}/okvis_multisensor_processing/include"
+  "${PROJECT_SOURCE_DIR}/mesh_util/include"
   "${PROJECT_SOURCE_DIR}/mesh_estimate/include"
   "${PROJECT_SOURCE_DIR}/pipeline/include"
   "${PROJECT_BINARY_DIR}"

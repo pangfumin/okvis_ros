@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.11)
-project(mesh_estimate)
+project(mesh_util)
 
 if(NOT DO_TIMING)
   add_definitions(-DDEACTIVATE_TIMERS)
@@ -14,21 +14,20 @@ FIND_PACKAGE(Boost COMPONENTS filesystem system thread REQUIRED)
 include_directories(include ${OpenCV_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
 # Build main library.
-set(FLAME_SRCS
-        src/mesh_estimator.cpp
-        src/flame.cc
+set(MESH_UTIL_SRCS
+        src/external/triangle/triangle.cpp
 
-        src/optimizers/nltgv2_l1_graph_regularizer.cc
+        src/utils/delaunay.cc
+        src/utils/frame.cc
+        src/utils/image_utils.cc
+        src/utils/keyframe_selector.cc
+        src/utils/pyramids.cc
+        src/utils/rasterization.cc)
 
-        src/stereo/inverse_depth_filter.cc
-        src/stereo/inverse_depth_meas_model.cc
-        )
+add_library(mesh_util  ${MESH_UTIL_SRCS})
 
-add_library(mesh_estimate  ${FLAME_SRCS})
-
-target_link_libraries(mesh_estimate
+target_link_libraries(mesh_util
         okvis_kinematics
-        mesh_util
         ${OpenCV_LIBS}
         ${Boost_LIBRARIES})
 
