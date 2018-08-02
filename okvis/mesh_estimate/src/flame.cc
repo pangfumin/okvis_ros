@@ -177,20 +177,7 @@ bool Flame::update(double time, uint32_t img_id,
 
     int num_pfs = pfs_.size();
 
-    // Fill in comparison frame info.
-    utils::Frame::ConstPtr fcmp;
 
-    fcmp = fprev_;
-
-
-    FLAME_ASSERT(fcmp != nullptr);
-    FLAME_ASSERT(fcmp->id != curr_pf_->id);
-    FLAME_ASSERT(fcmp->id < curr_pf_->id);
-
-    data.cmp = *fcmp;
-    for (int ii = 0; ii < fcmp->idepthmap.size(); ++ii) {
-      data.cmp.idepthmap[ii] = fcmp->idepthmap[ii].clone();
-    }
 
     // Project features into current frame.
     if (feats_.size() > 0) {
@@ -413,13 +400,6 @@ bool Flame::update(double time, uint32_t img_id,
 
     data.prev = *fprev_;
 
-    // Fill in comparison frame info.
-    utils::Frame::ConstPtr fcmp = fprev_;
-
-    data.cmp = *fcmp;
-    for (int ii = 0; ii < fcmp->idepthmap.size(); ++ii) {
-      data.cmp.idepthmap[ii] = fcmp->idepthmap[ii].clone();
-    }
 
     // Fill in features projected into poseframe.
     data.ref_xy.resize(feats_in_curr_.size());
@@ -656,7 +636,7 @@ void Flame::detectFeatures(DetectionData& data) {
   if (params_.continuous_detection ||
       (!params_.continuous_detection && (num_data_updates_ < 1))) {
     detectFeatures(params_, K_, Kinv_,
-                   data.ref, data.prev, data.cmp, data.ref.idepthmap[0],
+                   data.ref, data.prev,  data.ref.idepthmap[0],
                    data.ref_xy, &photo_error_,
                    &new_feats, &stats_, &debug_img_detections_);
   }
@@ -735,7 +715,6 @@ void Flame::detectFeatures(const Params& params,
                            const Matrix3f& Kinv,
                            const utils::Frame& fref,
                            const utils::Frame& fprev,
-                           const utils::Frame& fcmp,
                            const Image1f& idepthmap,
                            const std::vector<cv::Point2f>& curr_feats,
                            Image1f* error,

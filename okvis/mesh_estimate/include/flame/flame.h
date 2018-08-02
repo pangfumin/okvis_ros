@@ -325,7 +325,6 @@ class Flame final {
                              const Matrix3f& Kinv,
                              const utils::Frame& fref,
                              const utils::Frame& fprev,
-                             const utils::Frame& fcmp,
                              const Image1f& idepthmap,
                              const std::vector<Point2f>& curr_feats,
                              Image1f* error,
