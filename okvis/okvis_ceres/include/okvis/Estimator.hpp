@@ -62,6 +62,13 @@
 #include <okvis/ceres/ReprojectionError.hpp>
 #include <okvis/ceres/CeresIterationCallback.hpp>
 
+namespace flame {
+
+    namespace utils {
+        class Frame;
+    }
+}
+
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
@@ -554,6 +561,7 @@ class Estimator : public VioBackendInterface
   // the following keeps track of all the states at different time instances (key=poseId)
   std::map<uint64_t, States> statesMap_; ///< Buffer for currently considered states.
   std::map<uint64_t, okvis::MultiFramePtr> multiFramePtrMap_; ///< remember all needed okvis::MultiFrame.
+  std::map<uint64_t, std::shared_ptr<flame::utils::Frame>> multiFlameFramePtrMap_; ///< used for mesh estimate , temperal
   std::shared_ptr<okvis::ceres::Map> mapPtr_; ///< The underlying okvis::Map.
 
   // this is the reference pose

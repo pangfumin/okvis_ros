@@ -31,7 +31,8 @@ target_link_libraries(${PROJECT_NAME}
   PUBLIC okvis_util
   PUBLIC okvis_cv 
   PUBLIC okvis_common
-  PRIVATE ${CERES_LIBRARIES} 
+  PUBLIC mesh_util
+  PRIVATE ${CERES_LIBRARIES}
   PRIVATE ${OpenCV_LIBRARIES} 
 )
 
