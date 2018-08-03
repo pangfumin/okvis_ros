@@ -146,13 +146,12 @@ void ThreadedKFVio::init() {
   Eigen::Matrix3d K = Eigen::Matrix3d::Identity();
   K(0,0) = fx; K(1,1) = fy; K(0,2) = cx; K(1,2) = cy;
 
-  Eigen::Matrix3d invK = Eigen::Matrix3d::Identity();
-      invK(0,0) = 1.0/fx; invK(1,1) = 1.0/fy; invK(0,2) = -cx; invK(1,2) = -cy;
+
   Eigen::Vector4d distort;
   distort << k1,k2,k3,k4;
   meshEstimatorPtr_
           = std::make_shared<flame::MeshEstimator>(width, height,
-                  K.cast<float>(), invK.cast<float>(),
+                  K.cast<float>(),  K.inverse().cast<float>(),
                           distort.cast<float>(), meshParams);
   
   startThreads();

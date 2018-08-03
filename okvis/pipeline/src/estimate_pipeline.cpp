@@ -80,6 +80,7 @@ namespace okvis {
 
         Eigen::Matrix3d K = Eigen::Matrix3d::Identity();
         K(0,0) = fx; K(1,1) = fy; K(0,2) = cx; K(1,2) = cy;
+//
         Eigen::Vector4d distort;
         distort << k1,k2,k3,k4;
         meshEstimatorPtr_
