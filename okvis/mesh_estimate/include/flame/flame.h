@@ -146,21 +146,7 @@ class Flame final {
               const Image1b& img_new, bool is_poseframe,
               const Image1f& idepths_true = Image1f());
 
-  /**
-   * @brief Update the poseframe poses.
-   *
-   * @param[in] pf_ids PoseFrame IDs.
-   * @param[in] pf_poses New poses for the poseframes.
-   */
-  void updatePoseFramePoses(const std::vector<uint32_t>& pf_ids,
-                           const std::vector<Sophus::SE3f>& pf_poses) {
-    for (int ii = 0; ii < pf_ids.size(); ++ii) {
-      if (pfs_.count(pf_ids[ii]) > 0) {
-        pfs_[pf_ids[ii]]->pose =  pf_poses[ii];
-      }
-    }
-    return;
-  }
+
 
   /**
    * @brief Prune poseframes.

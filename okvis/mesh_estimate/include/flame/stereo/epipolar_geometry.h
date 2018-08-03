@@ -62,9 +62,9 @@ class EpipolarGeometry final {
   EpipolarGeometry(const Matrix3s& K, const Matrix3s& Kinv) :
       K_(K),
       Kinv_(Kinv),
-      q_ref_to_cmp_(),
-      t_ref_to_cmp_(),
-      t_cmp_to_ref_(),
+      q_B_A_(),
+      t_B_A_(),
+      t_A_B_(),
       KRKinv3_(),
       Kt_(),
       epipole_() {}
@@ -80,24 +80,26 @@ class EpipolarGeometry final {
   /**
    * \brief Load an epipolar geometry setup.
    *
-   * @param[in] q_ref_to_cmp Rotation from reference to comparison frame.
-   * @param[in] t_ref_to_cmp Translation from reference to compariosn frame.
+   * @param[in] q_B_A
+   * @param[in] t_B_A
    */
-  void loadGeometry(const Quaternions& q_ref_to_cmp,
-                    const Vector3s& t_ref_to_cmp) {
-    q_ref_to_cmp_ = q_ref_to_cmp;
-    t_ref_to_cmp_ = t_ref_to_cmp;
-    t_cmp_to_ref_ = -(q_ref_to_cmp_.inverse() * t_ref_to_cmp_);
-    KRKinv_ = K_ * q_ref_to_cmp_.toRotationMatrix() * Kinv_;
+  void loadGeometry(const Quaternions& q_B_A,
+                    const Vector3s& t_B_A) {
+    q_B_A_ = q_B_A;
+    t_B_A_ = t_B_A;
+    t_A_B_ = -(q_B_A_.inverse() * t_B_A_);
+    KRKinv_ = K_ * q_B_A_.toRotationMatrix() * Kinv_;
     KRKinv3_ = KRKinv_.row(2);
-    Kt_ = K_ * t_ref_to_cmp_;
+    Kt_ = K_ * t_B_A_;
 
-    if (t_ref_to_cmp_(2) > 0) {
+
+    // If B frame is in front of A frame.
+    if (t_B_A_(2) > 0) {
       // Precompute epipole.
-      epipole_.x = (K_(0, 0) * t_ref_to_cmp_(0) + K_(0, 2) * t_ref_to_cmp_(2)) /
-          t_ref_to_cmp_(2);
-      epipole_.y = (K_(1, 1) * t_ref_to_cmp_(1) + K_(1, 2) * t_ref_to_cmp_(2)) /
-          t_ref_to_cmp_(2);
+      epipole_.x = (K_(0, 0) * t_B_A_(0) + K_(0, 2) * t_B_A_(2)) /
+              t_B_A_(2);
+      epipole_.y = (K_(1, 1) * t_B_A_(1) + K_(1, 2) * t_B_A_(2)) /
+              t_B_A_(2);
     }
     return;
   }
@@ -124,22 +126,22 @@ class EpipolarGeometry final {
    * @param[in] u_ref Reference pixel.
    * @param[in] idepth Inverse depth.
    */
-  Point2s project(const Point2s& u_ref, Scalar idepth) const {
+  Point2s project(const Point2s& u_A, Scalar idepth) const {
     FLAME_ASSERT(idepth >= 0.0f);
     if (idepth == 0.0f) {
       Point2s u_max;
-      maxDepthProjection(u_ref, &u_max);
+      maxDepthProjection(u_A, &u_max);
       return u_max;
     }
 
     Scalar depth = 1.0f / idepth;
-    Vector3s u_ref_hom(u_ref.x * depth, u_ref.y * depth, depth);
-    Vector3s u_cmp_hom(KRKinv_ * u_ref_hom + Kt_);
+    Vector3s u_A_hom(u_A.x * depth, u_A.y * depth, depth);
+    Vector3s u_B_hom(KRKinv_ * u_A_hom + Kt_);
 
-    FLAME_ASSERT(utils::fast_abs(u_cmp_hom(2)) > 0.0f);
+    FLAME_ASSERT(utils::fast_abs(u_B_hom(2)) > 0.0f);
 
-    Scalar inv_u_cmp_hom2 = 1.0f / u_cmp_hom(2);
-    return Point2s(u_cmp_hom(0) * inv_u_cmp_hom2, u_cmp_hom(1) * inv_u_cmp_hom2);
+    Scalar inv_u_B_hom2 = 1.0f / u_B_hom(2);
+    return Point2s(u_B_hom(0) * inv_u_B_hom2, u_B_hom(1) * inv_u_B_hom2);
   }
 
   /**
@@ -150,32 +152,32 @@ class EpipolarGeometry final {
    * @param[out] u_cmp Projected pixel.
    * @param[out] new_idepth New inverse depth.
    */
-  void project(const Point2s& u_ref, Scalar idepth,
-               Point2s* u_cmp, Scalar* new_idepth) const {
+  void project(const Point2s& u_A, Scalar idepth,
+               Point2s* u_B, Scalar* new_idepth) const {
     FLAME_ASSERT(idepth >= 0.0f);
     if (idepth == 0.0f) {
       Point2s u_max;
-      maxDepthProjection(u_ref, &u_max);
-      *u_cmp = u_max;
+      maxDepthProjection(u_A, &u_max);
+      *u_B = u_max;
       *new_idepth = 0.0f;
       return;
     }
 
     Scalar depth = 1.0f / idepth;
-    Vector3s p_ref(Kinv_(0, 0) * u_ref.x + Kinv_(0, 2),
-                   Kinv_(1, 1) * u_ref.y + Kinv_(1, 2),
+    Vector3s p_A(Kinv_(0, 0) * u_A.x + Kinv_(0, 2),
+                   Kinv_(1, 1) * u_A.y + Kinv_(1, 2),
                    1.0f);
-    p_ref *= depth;
+    p_A *= depth;
 
-    Vector3s p_cmp(q_ref_to_cmp_ * p_ref + t_ref_to_cmp_);
-    Vector3s u_cmp3(K_(0, 0) * p_cmp(0) + K_(0, 2) * p_cmp(2),
-                    K_(1, 1) * p_cmp(1) + K_(1, 2) * p_cmp(2),
-                    p_cmp(2));
-    FLAME_ASSERT(fabs(u_cmp3(2)) > 0.0f);
+    Vector3s p_B(q_B_A_ * p_A + t_B_A_);
+    Vector3s u_B3(K_(0, 0) * p_B(0) + K_(0, 2) * p_B(2),
+                    K_(1, 1) * p_B(1) + K_(1, 2) * p_B(2),
+                  p_B(2));
+    FLAME_ASSERT(fabs(u_B3(2)) > 0.0f);
 
-    *new_idepth = 1.0f / p_cmp(2);
-    u_cmp->x = u_cmp3(0) * (*new_idepth);
-    u_cmp->y = u_cmp3(1) * (*new_idepth);
+    *new_idepth = 1.0f / p_B(2);
+    u_B->x = u_B3(0) * (*new_idepth);
+    u_B->y = u_B3(1) * (*new_idepth);
     return;
   }
 
@@ -188,15 +190,15 @@ class EpipolarGeometry final {
    * @param u_ref[in] Pixel in the reference image to project.
    * @param u_inf[out] The projection corresponding to infinite depth.
    */
-  void maxDepthProjection(const Point2s& u_ref, Point2s* u_inf) const {
-    Vector3s u_ref_hom(u_ref.x, u_ref.y, 1.0f);
-    Vector3s u_cmp_hom(KRKinv_ * u_ref_hom);
+  void maxDepthProjection(const Point2s& u_A, Point2s* u_inf) const {
+    Vector3s u_A_hom(u_A.x, u_A.y, 1.0f);
+    Vector3s u_B_hom(KRKinv_ * u_A_hom);
 
-    FLAME_ASSERT(fabs(u_cmp_hom(2)) > 0.0f);
+    FLAME_ASSERT(fabs(u_B_hom(2)) > 0.0f);
 
-    Scalar inv_u_cmp_hom2 = 1.0f / u_cmp_hom(2);
-    u_inf->x = u_cmp_hom(0) * inv_u_cmp_hom2;
-    u_inf->y = u_cmp_hom(1) * inv_u_cmp_hom2;
+    Scalar inv_u_B_hom2 = 1.0f / u_B_hom(2);
+    u_inf->x = u_B_hom(0) * inv_u_B_hom2;
+    u_inf->y = u_B_hom(1) * inv_u_B_hom2;
     return;
   }
 
@@ -204,8 +206,8 @@ class EpipolarGeometry final {
    * \brief Compute the epiline endpoint.
    *
    * There are several ways to compute the epiline endpoint. The most natural
-   * way is if the reference camera is in front of the comparison camera in the
-   * comparison camera frame (that is t_ref_to_cmp_z > 0). Then the epiline
+   * way is if the A camera is in front of the B camera in the
+   * comparison camera frame (that is t_B_A_z > 0). Then the epiline
    * endpoint is just the epipole (i.e. the projection of the reference camera
    * into the comparison camera). This corresponds to the point in the world
    * having 0 depth.
@@ -234,29 +236,29 @@ class EpipolarGeometry final {
    * @param u_ref[in] Pixel in the reference image to project.
    * @param u_min[out] The projection corresponding to minimum depth.
    */
-  void minDepthProjection(const Point2s& u_ref, Point2s* u_min) const {
-    if (t_ref_to_cmp_(2) > 0) {
+  void minDepthProjection(const Point2s& u_A, Point2s* u_min) const {
+    if (t_B_A_(2) > 0) {
       *u_min = epipole_;
-    } else if (t_ref_to_cmp_(2) == 0) {
+    } else if (t_B_A_(2) == 0) {
       // Compute epiline direction.
-      Point2s epi(K_(0, 0) * t_ref_to_cmp_(0), K_(1, 1) * t_ref_to_cmp_(1));
+      Point2s epi(K_(0, 0) * t_B_A_(0), K_(1, 1) * t_B_A_(1));
       Point2s u_inf;
-      maxDepthProjection(u_ref, &u_inf);
+      maxDepthProjection(u_A, &u_inf);
       *u_min = u_inf + 1e6 * epi;
     } else {
       // Compute depth in the ref frame such that point has depth 1 in comparison
       // frame.
-      Vector3s qp_ref(Kinv_(0, 0) * u_ref.x + Kinv_(0, 2),
-                      Kinv_(1, 1) * u_ref.y + Kinv_(1, 2),
+      Vector3s qp_A(Kinv_(0, 0) * u_A.x + Kinv_(0, 2),
+                      Kinv_(1, 1) * u_A.y + Kinv_(1, 2),
                       1.0f);
-      qp_ref = q_ref_to_cmp_ * qp_ref;
-      Scalar min_depth = (1.0f - t_ref_to_cmp_(2)) / qp_ref(2);
+      Vector3s qp_B = q_B_A_ * qp_A;
+      Scalar min_depth = (1.0f - t_B_A_(2)) / qp_B(2);
 
-      Vector3s p_cmp(min_depth * qp_ref + t_ref_to_cmp_);
-      FLAME_ASSERT(p_cmp(2) > 0.0f);
+      Vector3s p_B(min_depth * qp_B + t_B_A_);
+      FLAME_ASSERT(p_B(2) > 0.0f);
 
-      u_min->x = (K_(0, 0) * p_cmp(0) + K_(0, 2) * p_cmp(2)) / p_cmp(2);
-      u_min->y = (K_(1, 1) * p_cmp(1) + K_(1, 2) * p_cmp(2)) / p_cmp(2);
+      u_min->x = (K_(0, 0) * p_B(0) + K_(0, 2) * p_B(2)) / p_B(2);
+      u_min->y = (K_(1, 1) * p_B(1) + K_(1, 2) * p_B(2)) / p_B(2);
     }
 
     return;
@@ -279,10 +281,10 @@ class EpipolarGeometry final {
    * @param u_inf[out] Start of epipolar line (point of infinite depth).
    & @param epi[out] Epipolar unit vector.
   */
-  void epiline(const Point2s& u_ref, Point2s* u_inf, Point2s* epi) const {
+  void epiline(const Point2s& u_A, Point2s* u_inf, Point2s* epi) const {
     Point2s u_zero;
-    minDepthProjection(u_ref, &u_zero);
-    maxDepthProjection(u_ref, u_inf);
+    minDepthProjection(u_A, &u_zero);
+    maxDepthProjection(u_A, u_inf);
     *epi = u_zero - *u_inf;
     Scalar norm2 = epi->x*epi->x + epi->y*epi->y;
 
@@ -308,24 +310,24 @@ class EpipolarGeometry final {
    * @param[in] u_ref Reference pixel.
    * @param[out] epi Epipolar line.
    */
-  void referenceEpiline(const Point2s& u_ref, Point2s* epi) const {
+  void referenceEpiline(const Point2s& u_A, Point2s* epi) const {
     // Get epiline in reference image for the template.
     // calculate the plane spanned by the two camera centers and the point (x,y,1)
     // intersect it with the keyframe's image plane (at depth = 1)
     // This is the epipolar line in the keyframe.
-    Point2s epi_ref;
-    epi_ref.x = -K_(0, 0) * t_cmp_to_ref_(0) +
-        t_cmp_to_ref_(2)*(u_ref.x - K_(0, 2));
-    epi_ref.y = -K_(1, 1) * t_cmp_to_ref_(1) +
-        t_cmp_to_ref_(2)*(u_ref.y - K_(1, 2));
+    Point2s epi_A;
+    epi_A.x = -K_(0, 0) * t_A_B_(0) +
+            t_A_B_(2)*(u_A.x - K_(0, 2));
+    epi_A.y = -K_(1, 1) * t_A_B_(1) +
+            t_A_B_(2)*(u_A.y - K_(1, 2));
 
-    Scalar epi_ref_norm2 = epi_ref.x * epi_ref.x + epi_ref.y * epi_ref.y;
-    FLAME_ASSERT(epi_ref_norm2 > 0);
-    Scalar inv_epi_ref_norm = 1.0f / sqrt(epi_ref_norm2);
-    epi_ref.x *= inv_epi_ref_norm;
-    epi_ref.y *= inv_epi_ref_norm;
+    Scalar epi_A_norm2 = epi_A.x * epi_A.x + epi_A.y * epi_A.y;
+    FLAME_ASSERT(epi_A_norm2 > 0);
+    Scalar inv_epi_A_norm = 1.0f / sqrt(epi_A_norm2);
+    epi_A.x *= inv_epi_A_norm;
+    epi_A.y *= inv_epi_A_norm;
 
-    *epi = epi_ref;
+    *epi = epi_A;
 
     return;
   }
@@ -339,18 +341,18 @@ class EpipolarGeometry final {
    * @param epi[out] Epipolar line direction.
    * @param disparity[out] Disparity.
    */
-  Scalar disparity(const Point2s& u_ref, const Point2s& u_cmp,
+  Scalar disparity(const Point2s& u_A, const Point2s& u_B,
                    Point2s* u_inf, Point2s* epi) const {
-    epiline(u_ref, u_inf, epi);
-    return epi->x*(u_cmp.x - u_inf->x) + epi->y*(u_cmp.y - u_inf->y);
+    epiline(u_A, u_inf, epi);
+    return epi->x*(u_B.x - u_inf->x) + epi->y*(u_B.y - u_inf->y);
   }
-  Scalar disparity(const Point2s& u_ref, const Point2s& u_cmp) const {
+  Scalar disparity(const Point2s& u_A, const Point2s& u_B) const {
     Point2s u_inf, epi;
-    return disparity(u_ref, u_cmp, &u_inf, &epi);
+    return disparity(u_A, u_B, &u_inf, &epi);
   }
-  Scalar disparity(const Point2s& u_ref, const Point2s& u_cmp,
+  Scalar disparity(const Point2s& u_A, const Point2s& u_B,
                    const Point2s& u_inf, const Point2s& epi) const {
-    return epi.x*(u_cmp.x - u_inf.x) + epi.y*(u_cmp.y - u_inf.y);
+    return epi.x*(u_B.x - u_inf.x) + epi.y*(u_B.y - u_inf.y);
   }
 
   /**
@@ -362,10 +364,10 @@ class EpipolarGeometry final {
    * @param disparity[in] Disparity.
    * @return depth
    */
-  Scalar disparityToDepth(const Point2s& u_ref, const Point2s& u_inf,
+  Scalar disparityToDepth(const Point2s& u_A, const Point2s& u_inf,
                           const Point2s& epi, const Scalar disparity) const {
     FLAME_ASSERT(disparity >= 0.0f);
-    Scalar w = KRKinv3_(0) * u_ref.x + KRKinv3_(1) * u_ref.y + KRKinv3_(2);
+    Scalar w = KRKinv3_(0) * u_A.x + KRKinv3_(1) * u_A.y + KRKinv3_(2);
     Point2s A(w * disparity * epi);
     Point2s b(Kt_(0) - Kt_(2)*(u_inf.x + disparity * epi.x),
               Kt_(1) - Kt_(2)*(u_inf.y + disparity * epi.y));
@@ -389,11 +391,11 @@ class EpipolarGeometry final {
    * @param disparity[in] Disparity.
    * @return inverse depth
    */
-  Scalar disparityToInverseDepth(const Point2s& u_ref, const Point2s& u_inf,
+  Scalar disparityToInverseDepth(const Point2s& u_A, const Point2s& u_inf,
                                  const Point2s& epi,
                                  const Scalar disparity) const {
     FLAME_ASSERT(disparity >= 0.0f);
-    Scalar w = KRKinv3_(0) * u_ref.x + KRKinv3_(1) * u_ref.y + KRKinv3_(2);
+    Scalar w = KRKinv3_(0) * u_A.x + KRKinv3_(1) * u_A.y + KRKinv3_(2);
     Point2s A(Kt_(0) - Kt_(2)*(u_inf.x + disparity * epi.x),
               Kt_(1) - Kt_(2)*(u_inf.y + disparity * epi.y));
     Point2s b(w * disparity * epi);
@@ -409,8 +411,7 @@ class EpipolarGeometry final {
   // Accessors.
   const Matrix3s& K() const { return K_; }
   const Matrix3s& Kinv() const { return Kinv_; }
-  const Quaternions& getRefToCmpQuat() const { return q_ref_to_cmp_; }
-  const Vector3s& getRefToCmpTrans() const { return t_ref_to_cmp_; }
+
 
  private:
   // Camera parameters.
@@ -418,9 +419,9 @@ class EpipolarGeometry final {
   Matrix3s Kinv_;
 
   // Geometry.
-  Quaternions q_ref_to_cmp_;
-  Vector3s t_ref_to_cmp_;
-  Vector3s t_cmp_to_ref_;
+  Quaternions q_B_A_;
+  Vector3s t_B_A_;
+  Vector3s t_A_B_;
   Matrix3s KRKinv_;
   Vector3s KRKinv3_;
   Vector3s Kt_;
