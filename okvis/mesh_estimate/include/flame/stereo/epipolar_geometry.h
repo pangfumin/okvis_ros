@@ -20,6 +20,8 @@
  * @date 2017-08-18 19:17:13 (Fri)
  */
 
+
+ // todo: adapt to different camera intrinsic
 #pragma once
 
 #include <iostream>
