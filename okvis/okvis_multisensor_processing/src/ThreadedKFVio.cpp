@@ -143,16 +143,35 @@ void ThreadedKFVio::init() {
   double k3 = intrinsic[6];
   double k4 = intrinsic[7];
 
-  Eigen::Matrix3d K = Eigen::Matrix3d::Identity();
-  K(0,0) = fx; K(1,1) = fy; K(0,2) = cx; K(1,2) = cy;
+  Eigen::Matrix3d K0 = Eigen::Matrix3d::Identity();
+  K0(0,0) = fx; K0(1,1) = fy; K0(0,2) = cx; K0(1,2) = cy;
+  Eigen::Vector4d distort0;
+  distort0 << k1,k2,k3,k4;
 
 
-  Eigen::Vector4d distort;
-  distort << k1,k2,k3,k4;
+  parameters_.nCameraSystem.cameraGeometry(1)->getIntrinsics(intrinsic);
+  fx = intrinsic[0];
+  fy = intrinsic[1];
+  cx = intrinsic[2];
+  cy = intrinsic[3];
+  k1 = intrinsic[4];
+  k2 = intrinsic[5];
+  k3 = intrinsic[6];
+  k4 = intrinsic[7];
+
+  Eigen::Matrix3d K1 = Eigen::Matrix3d::Identity();
+  K1(0,0) = fx; K1(1,1) = fy; K1(0,2) = cx; K1(1,2) = cy;
+  Eigen::Vector4d distort1;
+  distort1 << k1,k2,k3,k4;
+
+
   meshEstimatorPtr_
           = std::make_shared<flame::MeshEstimator>(width, height,
-                  K.cast<float>(),  K.inverse().cast<float>(),
-                          distort.cast<float>(), meshParams);
+                  K0.cast<float>(), K0.inverse().cast<float>(),
+                          distort0.cast<float>(),
+                                  K1.cast<float>(), K1.inverse().cast<float>(),
+                                                  distort1.cast<float>(),
+                                  meshParams);
   
   startThreads();
 }

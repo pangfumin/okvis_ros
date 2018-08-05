@@ -42,8 +42,8 @@ namespace flame {
 namespace dgraph = optimizers::nltgv2_l1_graph_regularizer;
 
 Flame::Flame(int width, int height,
-             const Matrix3f& K,
-             const Matrix3f& Kinv,
+             const Matrix3f& K0, const Matrix3f& K0inv,
+             const Matrix3f& K1, const Matrix3f& K1inv,
              const Params& params) :
     stats_(),
     inited_(false),
@@ -52,9 +52,11 @@ Flame::Flame(int width, int height,
     params_(params),
     width_(width),
     height_(height),
-    K_(K),
-    Kinv_(Kinv),
-    epigeo_(K, Kinv),
+    K0_(K0),
+    K0inv_(K0inv),
+    K1_(K1),
+    K1inv_(K1inv),
+    epigeo_(K0, K0inv),
     num_imgs_(0),
     fnew_(nullptr),
     fprev_(nullptr),
@@ -117,8 +119,10 @@ Flame::~Flame() {
 }
 
 bool Flame::update(double time, uint32_t img_id,
-                   const Sophus::SE3f& T_new,
-                   const Image1b& img_new,
+                   const Sophus::SE3f& T_new0,
+                   const Sophus::SE3f& T_new1,
+                   const Image1b& img_new0,
+                   const Image1b& img_new1,
                    bool is_poseframe,
                    const Image1f& idepths_true) {
   stats_.tick("update");
@@ -139,7 +143,7 @@ bool Flame::update(double time, uint32_t img_id,
 
   // Create frame from new image.
   int border = params_.fparams.win_size;
-  fnew_ = utils::Frame::create(T_new, img_new, img_id, 1, border);
+  fnew_ = utils::Frame::create(T_new0, img_new0, img_id, 1, border);
 
   // Remember to increment counter.
   num_imgs_++;
@@ -181,7 +185,7 @@ bool Flame::update(double time, uint32_t img_id,
 
     // Project features into current frame.
     if (feats_.size() > 0) {
-      projectFeatures(params_, K_, Kinv_, pfs_, *curr_pf_, &feats_, &feats_in_curr_,
+      projectFeatures(params_, K0_, K0inv_, pfs_, *curr_pf_, &feats_, &feats_in_curr_,
                       &stats_);
 
       // Fill in features projected into poseframe.
@@ -211,7 +215,7 @@ bool Flame::update(double time, uint32_t img_id,
 
   /*==================== Update features ====================*/
   // Update depth estimates.
-  bool idepth_success = updateFeatureIDepths(params_, K_, Kinv_, pfs_, *fnew_,
+  bool idepth_success = updateFeatureIDepths(params_, K0_, K0inv_, pfs_, *fnew_,
                                              *curr_pf_, &feats_, &stats_,
                                              &debug_img_matches_);
 
@@ -221,7 +225,7 @@ bool Flame::update(double time, uint32_t img_id,
   }
 
   // Project features into current frame.
-  projectFeatures(params_, K_, Kinv_, pfs_, *fnew_, &feats_, &feats_in_curr_,
+  projectFeatures(params_, K0_, K0inv_, pfs_, *fnew_, &feats_, &feats_in_curr_,
                   &stats_);
 
   if (feats_.size() < 3) {
@@ -254,7 +258,7 @@ bool Flame::update(double time, uint32_t img_id,
   // Update and synchronize graph and features.
   graph_mtx_.lock();
   triangulator_mtx_.lock();
-  bool sync_success = syncGraph(params_, Kinv_, pfs_, idepthmap_, feats_,
+  bool sync_success = syncGraph(params_, K0inv_, pfs_, idepthmap_, feats_,
                                 feats_in_curr_, &triangulator_,
                                 &graph_, graph_scale_,
                                 &feat_to_vtx_, &vtx_to_feat_, &stats_);
@@ -326,7 +330,7 @@ bool Flame::update(double time, uint32_t img_id,
 
   // getVertexNormals(params_, K_, vtx_, vtx_idepths_, vtx_w1_, vtx_w2_, &vtx_normals_,
   //                  &stats_);
-  getVertexNormals(params_, Kinv_, vtx_, vtx_idepths_, triangles_curr_, &vtx_normals_,
+  getVertexNormals(params_, K0inv_, vtx_, vtx_idepths_, triangles_curr_, &vtx_normals_,
                    &stats_);
 
   /*==================== Do triangle filtering for display ====================*/
@@ -334,7 +338,7 @@ bool Flame::update(double time, uint32_t img_id,
   if (params_.do_oblique_triangle_filter) {
     // Filter oblique triangles. This is only for display purposes. The actual
     // graph will contain all the triangles.
-    obliqueTriangleFilter(params_, Kinv_, vtx_, vtx_idepths_,
+    obliqueTriangleFilter(params_, K0inv_, vtx_, vtx_idepths_,
                           triangles_curr_, &tri_validity_, &stats_);
   }
 
@@ -425,7 +429,7 @@ bool Flame::update(double time, uint32_t img_id,
                            vtx_validity, tri_validity_true, &w1_map_);
     utils::interpolateMesh(triangles_curr_, vtx_, vtx_w2_,
                            vtx_validity, tri_validity_true, &w2_map_);
-    drawNormals(params_, K_, fnew_->img[0], idepthmap_, w1_map_, w2_map_,
+    drawNormals(params_, K0_, fnew_->img[0], idepthmap_, w1_map_, w2_map_,
                 &debug_img_normals_);
   }
 
@@ -635,7 +639,7 @@ void Flame::detectFeatures(DetectionData& data) {
   std::vector<cv::Point2f> new_feats;
   if (params_.continuous_detection ||
       (!params_.continuous_detection && (num_data_updates_ < 1))) {
-    detectFeatures(params_, K_, Kinv_,
+    detectFeatures(params_, K0_, K0inv_,
                    data.ref, data.prev,  data.ref.idepthmap[0],
                    data.ref_xy, &photo_error_,
                    &new_feats, &stats_, &debug_img_detections_);

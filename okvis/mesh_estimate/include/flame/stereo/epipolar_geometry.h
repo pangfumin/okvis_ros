@@ -51,6 +51,8 @@ class EpipolarGeometry final {
   using Quaternions = Quaternion<Scalar>;
 
  public:
+
+    EpipolarGeometry() {};
   /**
    * \brief Constructor.
    *
@@ -86,7 +88,6 @@ class EpipolarGeometry final {
             KBt_(),
             epipole_() {}
 
-  EpipolarGeometry() = default;
   ~EpipolarGeometry() = default;
 
   EpipolarGeometry(const EpipolarGeometry& rhs) = default;
@@ -94,6 +95,14 @@ class EpipolarGeometry final {
 
   EpipolarGeometry(EpipolarGeometry&& rhs) = default;
   EpipolarGeometry& operator=(EpipolarGeometry&& rhs) = default;
+
+  void loadIntrinsic(const Matrix3s& KA, const Matrix3s& KAinv,
+                     const Matrix3s& KB , const Matrix3s& KBinv) {
+    KA_ = KA;
+    KAinv_ = KAinv;
+    KB_ = KB;
+    KBinv_ = KBinv;
+  }
 
   /**
    * \brief Load an epipolar geometry setup.

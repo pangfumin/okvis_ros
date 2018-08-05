@@ -121,7 +121,8 @@ class Flame final {
    * @param[in] params Parameter struct.
    */
   Flame(int width, int height,
-        const Matrix3f& K, const Matrix3f& Kinv,
+        const Matrix3f& K0, const Matrix3f& K0inv,
+        const Matrix3f& K1, const Matrix3f& K1inv,
         const Params& params = Params());
   ~Flame();
 
@@ -142,8 +143,12 @@ class Flame final {
    * @param[in] idepths_true True inverse depths (for debugging).
    * @return True if update successful. Outputs are only valid if returns True.
    */
-  bool update(double time, uint32_t img_id, const Sophus::SE3f& T_new,
-              const Image1b& img_new, bool is_poseframe,
+  bool update(double time, uint32_t img_id,
+              const Sophus::SE3f& T_new0,
+              const Sophus::SE3f& T_new1,
+              const Image1b& img_new0,
+              const Image1b& img_new1,
+              bool is_poseframe,
               const Image1f& idepths_true = Image1f());
 
 
@@ -480,8 +485,10 @@ class Flame final {
   int width_;
   int height_;
 
-  Matrix3f K_;
-  Matrix3f Kinv_;
+  Matrix3f K0_;
+  Matrix3f K0inv_;
+    Matrix3f K1_;
+    Matrix3f K1inv_;
 
   stereo::EpipolarGeometry<float> epigeo_;
 
