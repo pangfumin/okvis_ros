@@ -44,3 +44,21 @@ install(TARGETS ${PROJECT_NAME}
 )
 install(DIRECTORY include/ DESTINATION ${INSTALL_INCLUDE_DIR} COMPONENT dev FILES_MATCHING PATTERN "*.hpp")
 
+
+# test
+enable_testing()
+
+file(GLOB TEST_SOURCES "test/*.cpp")
+
+set(TEST_SOURCES
+        test/test_epipolar_geometry.cpp
+        test/test_stereo_epipolar_geometry.cpp)
+
+add_executable(${PROJECT_NAME}_test ${TEST_SOURCES} .)
+target_link_libraries(${PROJECT_NAME}_test pthread ${PROJECT_NAME} okvis_util)
+set_target_properties(${PROJECT_NAME}_test PROPERTIES COMPILE_FLAGS "-std=c++11 -Wno-deprecated-register")
+
+add_test(NAME ${PROJECT_NAME}_test COMMAND ${PROJECT_NAME}_test --gtest_color=yes)
+
+# Copy test data.
+file(COPY ./test/data DESTINATION ${CMAKE_BINARY_DIR})

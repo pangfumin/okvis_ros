@@ -54,7 +54,7 @@ Flame::Flame(int width, int height,
     height_(height),
     K_(K),
     Kinv_(Kinv),
-    epigeo_(K, Kinv),
+    epigeo_(K, Kinv, K, Kinv),
     num_imgs_(0),
     fnew_(nullptr),
     fprev_(nullptr),
@@ -739,7 +739,7 @@ void Flame::detectFeatures(const Params& params,
   cv::Rect valid_region(border, border + row_offset,
                         width - 2*border, height - 2*border - 2*row_offset);
 
-  stereo::EpipolarGeometry<float> epigeo(K, Kinv);
+  stereo::EpipolarGeometry<float> epigeo(K, Kinv, K, Kinv);
 
   //   /*==================== Compute photo error ====================*/
   //   Sophus::SE3f T_ref_to_cmp(fcmp.pose.inverse() * fref.pose);
@@ -1196,7 +1196,7 @@ bool Flame::updateFeatureIDepths(const Params& params,
 
 #pragma omp parallel for num_threads(params.omp_num_threads) schedule(static, params.omp_chunk_size) // NOLINT
   for (int ii = 0; ii < feats->size(); ++ii) {
-    stereo::EpipolarGeometry<float> epigeo(K, Kinv);
+    stereo::EpipolarGeometry<float> epigeo(K, Kinv, K, Kinv);
 
     FeatureWithIDepth& fii = (*feats)[ii];
 
@@ -1497,7 +1497,7 @@ bool Flame::trackFeature(const Params& params,
 
     // If this feature has converged already, move it so that it's parent
     // pose is the most recent poseframe frame rather than throw it away.
-    stereo::EpipolarGeometry<float> epipf(K, Kinv);
+    stereo::EpipolarGeometry<float> epipf(K, Kinv, K, Kinv);
     Sophus::SE3f T_old_to_new = curr_pf.pose.inverse() * pfs.at(feat->frame_id)->pose;
     epipf.loadGeometry(T_old_to_new.unit_quaternion(),
                        T_old_to_new.translation());
@@ -1670,7 +1670,7 @@ void Flame::projectFeatures(const Params& params,
     FeatureWithIDepth& feat_cur = (*feats_in_curr)[ii];
 
     // Load geometry.
-    stereo::EpipolarGeometry<float> epigeo(K, Kinv);
+    stereo::EpipolarGeometry<float> epigeo(K, Kinv, K, Kinv);
     auto& fref = pfs.at(feat_ref.frame_id);
     Sophus::SE3f T_ref_to_cur = fcur.pose.inverse() * fref->pose;
     Sophus::SE3f T_cur_to_ref = fref->pose.inverse() * fcur.pose;
