@@ -52,7 +52,8 @@ file(GLOB TEST_SOURCES "test/*.cpp")
 
 set(TEST_SOURCES
         test/test_epipolar_geometry.cpp
-        test/test_stereo_epipolar_geometry.cpp)
+        test/test_stereo_epipolar_geometry.cpp
+        test/test_inverse_depth_filter.cpp)
 
 add_executable(${PROJECT_NAME}_test ${TEST_SOURCES} .)
 target_link_libraries(${PROJECT_NAME}_test pthread ${PROJECT_NAME} okvis_util)

@@ -16,14 +16,15 @@
 #include "gtest/gtest.h"
 
 #include "flame/stereo/epipolar_geometry.h"
+#include "flame/stereo/inverse_depth_filter.h"
+#include "flame/params.h"
 
 namespace flame {
 
     namespace stereo {
-
-        class TestStereoEpipolar {
+        class TestInverseDepthFilter {
         public:
-            TestStereoEpipolar() {
+            TestInverseDepthFilter() {
                 width_ = 752;
                 height_ = 480;
 
@@ -32,15 +33,15 @@ namespace flame {
 
                 K0_<< 458.654, 0 , 367.215,
                         0, 457.296,  248.375,
-                0,0,1;
+                        0,0,1;
 
                 K0cv_ = (cv::Mat_<float>(3,3) << 458.654, 0 , 367.215,
                         0, 457.296,  248.375,
                         0,0,1);
 
                 K1_ << 457.587, 0,  379.999,
-                       0,  456.134,255.238,
-                0,0,1;
+                        0,  456.134,255.238,
+                        0,0,1;
 
                 K1cv_ = (cv::Mat_<float>(3,3) << 457.587, 0,  379.999,
                         0,  456.134,255.238,
@@ -95,19 +96,17 @@ namespace flame {
             cv::Mat distortedImage0_;
             cv::Mat image1_;
             cv::Mat distortedImage1_;
-
         };
 
-
-        TEST(StereoEpipolarGeometryTest, project) {
-            TestStereoEpipolar testStereoEpipolar;
+        TEST(InverseDepthFilterTest, research) {
+            TestInverseDepthFilter testStereoEpipolar;
 
             EpipolarGeometry<float> epipolarGeometry(testStereoEpipolar.K0_, testStereoEpipolar.K0_.inverse(),
-                                                    testStereoEpipolar.K1_, testStereoEpipolar.K1_.inverse());
+                                                     testStereoEpipolar.K1_, testStereoEpipolar.K1_.inverse());
             Eigen::Matrix3d C = testStereoEpipolar.T_C1_C0_.linear();
             Eigen::Quaterniond quat_C1_C0(C);
             epipolarGeometry.loadGeometry(quat_C1_C0.cast<float>(),
-                    testStereoEpipolar.T_C1_C0_.translation().cast<float>());
+                                          testStereoEpipolar.T_C1_C0_.translation().cast<float>());
             const int fast_th = 80;
             std::vector<cv::KeyPoint> kp0;
             cv::FAST(testStereoEpipolar.distortedImage0_, kp0, fast_th,true );
@@ -115,47 +114,7 @@ namespace flame {
             cv::cvtColor(testStereoEpipolar.distortedImage0_, kp_canvas, CV_GRAY2BGR);
             cv::cvtColor(testStereoEpipolar.distortedImage1_, kp_canvas1, CV_GRAY2BGR);
             cv::drawKeypoints(kp_canvas, kp0, kp_canvas, cv::Scalar(225, 0,0));
-
-            std::vector<cv::KeyPoint> u_inf_s;
-            std::vector<cv::KeyPoint> u_zero_s;
-            std::vector<cv::KeyPoint> u_cmp_s;
-            cv::RNG rng;
-            for (auto kp : kp0) {
-                cv::Point2f u_inf, u_zero, u_cmp;
-                epipolarGeometry.maxDepthProjection(kp.pt, &u_inf);
-                epipolarGeometry.minDepthProjection(kp.pt, &u_zero);
-
-                float depth = rng.uniform(1.0, 2.0);
-                u_cmp = epipolarGeometry.project(kp.pt, 1.0/ depth );
-                cv::KeyPoint kp_inf, kp_zero, kp_cmp;
-                kp_inf.pt = u_inf;
-                kp_zero.pt = u_zero;
-                kp_cmp.pt = u_cmp;
-                u_inf_s.push_back(kp_inf);
-                u_zero_s.push_back(kp_zero);
-                u_cmp_s.push_back(kp_cmp);
-//                std::cout<< "kp_inf: " << kp_inf.pt.x << " " << kp_inf.pt.y
-//                         << " "<< kp_zero.pt.x << " " <<kp_zero.pt.y << std::endl;
-
-                cv::line(kp_canvas1, u_zero, u_inf,cv::Scalar( 0,225, 225));
-            }
-
-
-            cv::drawKeypoints(kp_canvas1, u_inf_s, kp_canvas1, cv::Scalar( 0,225, 0));
-            cv::drawKeypoints(kp_canvas1, u_zero_s, kp_canvas1, cv::Scalar( 0,225, 225));
-            cv::drawKeypoints(kp_canvas1, u_cmp_s, kp_canvas1, cv::Scalar( 225,0, 225));
-
-
-//
-//            cv::imshow("left", kp_canvas);
-//            cv::imshow("right", kp_canvas1);
-//
-//            while( true){
-//                int c = cv::waitKey(10);
-//                if (c == 27) break;
-//            }
-
         }
-    }
 
+    }
 }

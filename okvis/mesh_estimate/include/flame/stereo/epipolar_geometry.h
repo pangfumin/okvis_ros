@@ -61,18 +61,6 @@ class EpipolarGeometry final {
    * @param[in] K Camera intrinsic matrix.
    * @param[in] Kinv Inverse camera intrinsic matrix.
    */
-//  EpipolarGeometry(const Matrix3s& K, const Matrix3s& Kinv) :
-//      KA_(K),
-//      KAinv_(Kinv),
-//      KB_(K),
-//      KBinv_(Kinv),
-//      q_B_A_(),
-//      t_B_A_(),
-//      t_A_B_(),
-//      KB_R_KAinv3_(),
-//      KBt_(),
-//      epipole_() {}
-
     EpipolarGeometry(const Matrix3s& KA, const Matrix3s& KAinv,
                      const Matrix3s& KB, const Matrix3s& KBinv) :
             KA_(KA),
