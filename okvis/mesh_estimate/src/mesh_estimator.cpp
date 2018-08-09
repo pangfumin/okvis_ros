@@ -7,41 +7,54 @@ namespace flame {
 
     uint64_t MeshEstimator::img_id_ = 0;
     MeshEstimator::MeshEstimator(int width, int height,
-                                 const Matrix3f& K, const Matrix3f& Kinv,
-                                 const Vector4f& distort,
+                                 const Matrix3f& K0, const Matrix3f& K0inv,
+                                 const Vector4f& distort0,
+                                 const Matrix3f& K1, const Matrix3f& K1inv,
+                                 const Vector4f& distort1,
                                  const Params& parameters):
             params_(parameters),
             poseframe_subsample_factor_(6) {
 
-        cv::eigen2cv(K, Kcv_);
-        cv::eigen2cv(distort, Dcv_);
+        cv::eigen2cv(K0, K0cv_);
+        cv::eigen2cv(distort0, D0cv_);
+
+        cv::eigen2cv(K1, K1cv_);
+        cv::eigen2cv(distort1, D1cv_);
 
         sensor_ = std::make_shared<flame::Flame>(width,
                                                  height,
-                                                 K,
-                                                 Kinv,
+                                                 K0,
+                                                 K0inv,
+                                                 K1,
+                                                 K1inv,
                                                  params_);
 
     }
 
     void MeshEstimator::processFrame( const double time,
-                      const okvis::kinematics::Transformation& T_WC,
-                                      const cv::Mat& img_gray, bool isKeyframe) {
+                      const okvis::kinematics::Transformation& T_WC0,
+                                      const cv::Mat& img_gray0,
+                                      const okvis::kinematics::Transformation& T_WC1,
+                                      const cv::Mat& img_gray1,bool isKeyframe) {
 //
         /*==================== Process image ====================*/
-        cv::Mat img_gray_undist;
-        cv::undistort(img_gray, img_gray_undist, Kcv_, Dcv_);
+        cv::Mat img_gray_undist0;
+        cv::undistort(img_gray0, img_gray_undist0, K0cv_, D0cv_);
 
-        SE3d pose(T_WC.C(), T_WC.r());
-//        std::cout<< T_WC.T() << std::endl;
-//        std::cout<< pose.unit_quaternion().toRotationMatrix() << std::endl;
+        SE3d pose0(T_WC0.C(), T_WC0.r());
 
+        cv::Mat img_gray_undist1;
+        cv::undistort(img_gray1, img_gray_undist1, K1cv_, D1cv_);
+
+        SE3d pose1(T_WC1.C(), T_WC1.r());
 
         bool is_poseframe = isKeyframe;
 
         bool update_success = false;
 
-        update_success = sensor_->update(time, img_id_, pose.cast<float>(), img_gray_undist,
+        update_success = sensor_->update(time, img_id_,
+                pose0.cast<float>(), img_gray_undist0,
+                                         pose1.cast<float>(), img_gray_undist1,
                                              is_poseframe);
         img_id_ ++;
 //        if (!update_success) {

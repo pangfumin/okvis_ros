@@ -83,10 +83,31 @@ namespace okvis {
 //
         Eigen::Vector4d distort;
         distort << k1,k2,k3,k4;
+
+
+        parameters_.nCameraSystem.cameraGeometry(1)->getIntrinsics(intrinsic);
+         fx = intrinsic[0];
+         fy = intrinsic[1];
+         cx = intrinsic[2];
+         cy = intrinsic[3];
+         k1 = intrinsic[4];
+         k2 = intrinsic[5];
+         k3 = intrinsic[6];
+         k4 = intrinsic[7];
+
+        Eigen::Matrix3d K1 = Eigen::Matrix3d::Identity();
+        K1(0,0) = fx; K1(1,1) = fy; K1(0,2) = cx; K1(1,2) = cy;
+//
+        Eigen::Vector4d distort1;
+        distort1 << k1,k2,k3,k4;
+
         meshEstimatorPtr_
                 = std::make_shared<flame::MeshEstimator>(width, height,
                                                          K.cast<float>(), K.inverse().cast<float>(),
-                                                         distort.cast<float>(), meshParams);
+                                                         distort.cast<float>(),
+                                                         K1.cast<float>(), K1.inverse().cast<float>(),
+                                                                 distort1.cast<float>(),
+                                                                 meshParams);
     }
 
 
@@ -197,8 +218,10 @@ namespace okvis {
             estimator_.setKeyframe(multiFrame->id(), asKeyframe);
 
         okvis::kinematics::Transformation T_WC0 = T_WS * (*parameters_.nCameraSystem.T_SC(0));
+        okvis::kinematics::Transformation T_WC1 = T_WS * (*parameters_.nCameraSystem.T_SC(1));
         meshEstimatorPtr_->processFrame(multiFrame->timestamp().toSec(),
-                                        T_WC0, multiFrame->image(0), asKeyframe);
+                                        T_WC0, multiFrame->image(0),
+                                        T_WC1, multiFrame->image(1), asKeyframe);
 
 
 
@@ -305,7 +328,7 @@ namespace okvis {
                 out_images[i] = visualizer_.drawMatches(visualizationDataPtr, i);
             }
             displayImages_ = out_images;
-            display();
+            //display();
 
 
 

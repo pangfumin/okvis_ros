@@ -27,8 +27,8 @@ namespace flame {
                 width_ = 752;
                 height_ = 480;
 
-                image0_ = cv::imread("../data/1403636659863555584_left.png", CV_LOAD_IMAGE_GRAYSCALE);
-                image1_ = cv::imread("../data/1403636659863555584_right.png", CV_LOAD_IMAGE_GRAYSCALE);
+                image0_ = cv::imread("../data/1403636643463555584_left.png", CV_LOAD_IMAGE_GRAYSCALE);
+                image1_ = cv::imread("../data/1403636643463555584_right.png", CV_LOAD_IMAGE_GRAYSCALE);
 
                 K0_<< 458.654, 0 , 367.215,
                         0, 457.296,  248.375,
@@ -147,13 +147,13 @@ namespace flame {
 
 
 //
-//            cv::imshow("left", kp_canvas);
-//            cv::imshow("right", kp_canvas1);
-//
-//            while( true){
-//                int c = cv::waitKey(10);
-//                if (c == 27) break;
-//            }
+            cv::imshow("left", kp_canvas);
+            cv::imshow("right", kp_canvas1);
+
+            while( true){
+                int c = cv::waitKey(10);
+                if (c == 27) break;
+            }
 
         }
     }
