@@ -21,7 +21,7 @@
  */
 
 #include "flame/utils/frame.h"
-
+#include <iostream>
 #include <limits>
 
 #include "flame/utils/pyramids.h"

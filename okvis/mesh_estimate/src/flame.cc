@@ -1572,10 +1572,6 @@ bool Flame::updateFeatureIDepths(const Params& params,
   cv::waitKey(2);
 
 
-  std::cout<< "Frame: " << fnew_right.id
-           << " track  left " << left_update_cnt << " right " << right_update_cnt
-           << " out of " << feats->size() << std::endl;
-
 
     return left_success || right_success;
 }
