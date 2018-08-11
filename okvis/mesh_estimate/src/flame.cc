@@ -1434,7 +1434,6 @@ bool Flame::updateFeatureIDepths(const Params& params,
       left_success = true;
       left_update_success = true;
       left_update_cnt ++;
-      std::cout  << left_flow.x << " " << left_flow.y << std::endl;
     }
 
     /**
@@ -1464,6 +1463,8 @@ bool Flame::updateFeatureIDepths(const Params& params,
     } else {
       continue;
     }
+
+    // todo: enssential matrix check
 
     /*==================== Update idepth ====================*/
     // Load stuff into meas model.
@@ -1515,14 +1516,9 @@ bool Flame::updateFeatureIDepths(const Params& params,
 
     if (left_update_success && right_update_success) {
       std::pair<Point2f , Point2f > flow_pair(left_flow, right_flow);
-      std::cout  << left_flow.x << " " << left_flow.y << " " << right_flow.x << " " << right_flow.y << std::endl;
       flow_pairs.push_back(flow_pair);
     }
   }
-
-
-
-
 
   // Fill in some stats.
   stats->set("num_idepth_updates", num_total_updates);
@@ -1571,8 +1567,8 @@ bool Flame::updateFeatureIDepths(const Params& params,
   }
 
   //cv::imshow("curr_pf", colorCurr_pf);
-   cv::imshow("fnew", colorNew_left);
-  //cv::imshow("fnew_right", colorNew_right);
+   cv::imshow("fnew", 0.5*colorNew_left + 0.5*colorNew_right);
+  cv::imshow("fnew_right", colorNew_right);
   cv::waitKey(2);
 
 
