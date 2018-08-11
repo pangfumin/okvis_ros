@@ -51,8 +51,10 @@ class InverseDepthMeasModel final {
     bool verbose = false; // Print verbose errors.
   };
 
-  InverseDepthMeasModel(const Eigen::Matrix3f& K,
-                        const Eigen::Matrix3f& Kinv,
+  InverseDepthMeasModel(const Eigen::Matrix3f& K0,
+                        const Eigen::Matrix3f& K0inv,
+                        const Eigen::Matrix3f& K1,
+                        const Eigen::Matrix3f& K1inv,
                         const Params& params = Params());
   ~InverseDepthMeasModel() = default;
 

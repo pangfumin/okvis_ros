@@ -31,8 +31,10 @@ namespace flame {
 
 namespace stereo {
 
-InverseDepthMeasModel::InverseDepthMeasModel(const Eigen::Matrix3f& K,
-                                             const Eigen::Matrix3f& Kinv,
+InverseDepthMeasModel::InverseDepthMeasModel(const Eigen::Matrix3f& K0,
+                                             const Eigen::Matrix3f& K0inv,
+                                             const Eigen::Matrix3f& K1,
+                                             const Eigen::Matrix3f& K1inv,
                                              const Params& params) :
     inited_geo_(false),
     inited_imgs_(false),
@@ -44,7 +46,7 @@ InverseDepthMeasModel::InverseDepthMeasModel(const Eigen::Matrix3f& K,
     gradx_cmp_(),
     grady_cmp_(),
     T_ref_to_cmp_(),
-    epigeo_(K, Kinv, K, Kinv) {}
+    epigeo_(K0, K0inv, K1, K1inv) {}
 
 bool InverseDepthMeasModel::idepth(const cv::Point2f& u_ref,
                                    const cv::Point2f& u_cmp,

@@ -212,7 +212,9 @@ bool Flame::update(double time, uint32_t img_id,
 
   /*==================== Update features ====================*/
   // Update depth estimates.
-  bool idepth_success = updateFeatureIDepths(params_, K0_, K0inv_, pfs_, *fnew_,
+  bool idepth_success = updateFeatureIDepths(params_, K0_, K0inv_,
+          K1_, K1inv_,
+          pfs_, *fnew_, *fnew_right_,
                                              *curr_pf_, &feats_, &stats_,
                                              &debug_img_matches_);
 
@@ -1172,10 +1174,13 @@ void Flame::detectFeatures(const Params& params,
 }
 
 bool Flame::updateFeatureIDepths(const Params& params,
-                                 const Matrix3f& K,
-                                 const Matrix3f& Kinv,
+                                 const Matrix3f& K0,
+                                 const Matrix3f& K0inv,
+                                 const Matrix3f& K1,
+                                 const Matrix3f& K1inv,
                                  const FrameIDToFrame& pfs,
                                  const utils::Frame& fnew,
+                                 const utils::Frame& fnew_right,
                                  const utils::Frame& curr_pf,
                                  std::vector<FeatureWithIDepth>* feats,
                                  utils::StatsTracker* stats,
@@ -1200,7 +1205,7 @@ bool Flame::updateFeatureIDepths(const Params& params,
 
 #pragma omp parallel for num_threads(params.omp_num_threads) schedule(static, params.omp_chunk_size) // NOLINT
   for (int ii = 0; ii < feats->size(); ++ii) {
-    stereo::EpipolarGeometry<float> epigeo(K, Kinv, K, Kinv);
+    stereo::EpipolarGeometry<float> epigeo(K0, K0inv, K0, K0inv);
 
     FeatureWithIDepth& fii = (*feats)[ii];
 
@@ -1220,7 +1225,7 @@ bool Flame::updateFeatureIDepths(const Params& params,
     /*==================== Track feature in new image ====================*/
     cv::Point2f flow;
     float residual;
-    bool track_success = trackFeature(params, K, Kinv, pfs, epigeo, fnew,
+    bool track_success = trackFeature(params, K0, K0inv, pfs, epigeo, fnew,
                                       curr_pf, &fii, &flow, &residual,
                                       debug_img);
 
@@ -1271,7 +1276,7 @@ bool Flame::updateFeatureIDepths(const Params& params,
 
     /*==================== Update idepth ====================*/
     // Load stuff into meas model.
-    stereo::InverseDepthMeasModel model(K, Kinv, params.zparams);
+    stereo::InverseDepthMeasModel model(K0, K0inv, K0, K0inv, params.zparams);
     auto& pfii = pfs.at(fii.frame_id);
     model.loadGeometry(pfii->pose, fnew.pose);
     model.loadPaddedImages(pfii->img_pad[0], fnew.img_pad[0],
@@ -1424,8 +1429,117 @@ bool Flame::updateFeatureIDepths(const Params& params,
            feats->size(), stats->timings("update_idepths"));
   }
 
-  return success;
+
+
+  /*
+   * For  right image
+   */
+
+  int right_search_cnt = 0;
+  std::vector<cv::KeyPoint> kp_curr_pf, kp_new;
+
+  Image3b colorCurr_pf, colorNew;
+  cv::cvtColor(curr_pf.img[0], colorCurr_pf, CV_GRAY2BGR);
+  cv::cvtColor(fnew_right.img[0], colorNew, CV_GRAY2BGR);
+#pragma omp parallel for num_threads(params.omp_num_threads) schedule(static, params.omp_chunk_size) // NOLINT
+  for (int ii = 0; ii < feats->size(); ++ii) {
+    stereo::EpipolarGeometry<float> epigeo(K0, K0inv, K1, K1inv);
+
+    FeatureWithIDepth &fii = (*feats)[ii];
+
+    // Load geometry.
+    Sophus::SE3f T_ref_to_right = fnew_right.pose.inverse() * pfs.at(fii.frame_id)->pose;
+    Sophus::SE3f T_right_to_ref = pfs.at(fii.frame_id)->pose.inverse() * fnew_right.pose;
+    epigeo.loadGeometry(T_ref_to_right.unit_quaternion(),
+                        T_ref_to_right.translation());
+
+    /*==================== Track feature in new image ====================*/
+    cv::Point2f flow, u_cmp;
+    float residual;
+
+
+    bool track_success = trackFeatureRight(params, K0, K0inv, K1, K1inv, pfs,
+            epigeo, fnew_right,
+                                      curr_pf, &fii, &flow,
+                                           &residual,
+                                           &colorNew);
+
+    if (track_success) {
+      right_search_cnt ++;
+      if ( fii.frame_id == curr_pf.id) {
+        cv::KeyPoint kp;
+        kp.pt = fii.xy;
+        kp_curr_pf.push_back(kp);
+      }
+    } else {
+      continue;
+    }
+
+    /*==================== Update idepth ====================*/
+    // Load stuff into meas model.
+    stereo::InverseDepthMeasModel model(K0, K0inv, K1, K1inv, params.zparams);
+    auto& pfii = pfs.at(fii.frame_id);
+    model.loadGeometry(pfii->pose, fnew_right.pose);
+    model.loadPaddedImages(pfii->img_pad[0], fnew_right.img_pad[0],
+                           pfii->gradx_pad[0],
+                           pfii->grady_pad[0],
+                           fnew_right.gradx_pad[0], fnew_right.grady_pad[0]);
+
+    // Generate measurement.
+    float mu_meas, var_meas;
+    bool sense_success = model.idepth(fii.xy, flow, &mu_meas, &var_meas);
+
+    if (!sense_success) {
+      continue;
+    }
+
+    // Fuse.
+    float mu_post, var_post;
+    bool fuse_success =
+            stereo::inverse_depth_filter::update(fii.idepth_mu,
+                                                 fii.idepth_var,
+                                                 mu_meas, var_meas,
+                                                 &mu_post, &var_post,
+                                                 params.outlier_sigma_thresh);
+
+    if (!fuse_success) {
+      continue;
+    }
+
+    if (params.do_meas_fusion) {
+      fii.idepth_mu = mu_post;
+      fii.idepth_var = var_post;
+    } else {
+      fii.idepth_mu = mu_meas;
+      fii.idepth_var = var_meas;
+    }
+
+    fii.valid = true;
+    fii.num_updates++;
+    fii.num_dropouts = 0;
+
+    success = true;
+
 }
+
+
+  cv::drawKeypoints(colorCurr_pf,kp_curr_pf,colorCurr_pf, cv::Scalar(225, 0,0 ));
+  ///cv::drawKeypoints(colorNew,kp_new,colorNew, cv::Scalar(0,225, 0 ));
+  cv::imshow("curr_pf", colorCurr_pf);
+  // cv::imshow("fnew", fnew.img[0]);
+  cv::imshow("fnew_right", colorNew);
+  cv::waitKey(2);
+
+
+  std::cout<< "Right frame: " << fnew_right.id
+           << " track " << right_search_cnt
+           << " out of " << feats->size() << std::endl;
+
+
+    return success;
+}
+
+
 
 bool Flame::trackFeature(const Params& params,
                          const Matrix3f& K,
@@ -1641,6 +1755,152 @@ bool Flame::trackFeature(const Params& params,
   //   auto colormap = [&color](float a) { return color; };
   //   utils::applyColorMapLine(u_start, u_end, 1, 1, colormap, 0.5, debug_img);
   // }
+
+  return true;
+}
+
+bool Flame::trackFeatureRight(const Params& params,
+                              const Matrix3f& K0,
+                              const Matrix3f& K0inv,
+                              const Matrix3f& K1,
+                              const Matrix3f& K1inv,
+                         const FrameIDToFrame& pfs,
+                         const stereo::EpipolarGeometry<float>& epigeo,
+                         const utils::Frame& fnew,
+                         const utils::Frame& curr_pf,
+                         FeatureWithIDepth* feat,
+                         cv::Point2f* flow,
+                         float* residual,
+                         Image3b* debug_img) {
+  int debug_feature_radius = fnew.img[0].cols / 320; // For drawing features.
+  cv::Point2i debug_feature_offset(debug_feature_radius, debug_feature_radius);
+
+  /*==================== Predict feature in new image ====================*/
+
+  cv::Point2f u_cmp;
+  float idepth_cmp, var_cmp;
+  bool pred_success =
+          stereo::inverse_depth_filter::predict(epigeo,
+                                                params.fparams.process_var_factor,
+                                                feat->xy,
+                                                feat->idepth_mu,
+                                                feat->idepth_var,
+                                                &u_cmp, &idepth_cmp, &var_cmp);
+  if (!pred_success) {
+    //std::cout<< "right predict failure" << std::endl;
+    return false;
+  }
+
+  if (feat->frame_id == curr_pf.id) {
+    std::vector<cv::KeyPoint> kps;
+    cv::KeyPoint kp; kp.pt = u_cmp; kps.push_back(kp);
+    cv::drawKeypoints(*debug_img, kps, *debug_img, cv::Scalar(225, 0,0));
+  }
+
+
+
+  float rescale_factor = 1.0f;
+  if ((feat->idepth_mu > 0.0f) && (idepth_cmp > 0.0f)) {
+    rescale_factor = idepth_cmp / feat->idepth_mu;
+  }
+
+  /*==================== Use LSD-SLAM style direct search ====================*/
+  int width = fnew.img[0].cols;
+  int height = fnew.img[0].rows;
+
+  int row_offset = 0;
+  if (params.do_letterbox) {
+    // Only detect features in middle third of image.
+    row_offset = height/3;
+  }
+
+  int border = params.rescale_factor_max * params.fparams.win_size / 2 + 1;
+  cv::Rect valid_region(border, border + row_offset,
+                        width - 2*border, height - 2*border - 2*row_offset);
+
+
+
+  cv::Point2f u_start, u_end, epi;
+  bool region_success =
+          stereo::inverse_depth_filter::getSearchRegion(params.fparams, epigeo,
+                                                        width, height, feat->xy,
+                                                        feat->idepth_mu, feat->idepth_var,
+                                                        &u_start, &u_end, &epi);
+
+
+  if (region_success) {
+    if (feat->frame_id == curr_pf.id) {
+      cv::line(*debug_img, u_start, u_end, cv::Scalar(33,54,234));
+    }
+  }else{
+      // Failed search region in black.
+      cv::Point2i u_cmpi(u_cmp.x + 0.5f, u_cmp.y + 0.5f);
+      cv::rectangle(*debug_img, u_cmpi - debug_feature_offset,
+                    u_cmpi + debug_feature_offset, cv::Scalar(45, 233, 0), -1);
+    return false;
+  }
+
+  int padding = (fnew.img_pad[0].rows - fnew.img[0].rows) / 2;
+  cv::Point2f offset(padding, padding);
+
+  if (!valid_region.contains(feat->xy)) {
+    if (!params.debug_quiet) {
+      printf("Flame[WARNING]: Feature outside bounds: feat->xy = %f, %f\n",
+             feat->xy.x, feat->xy.y);
+    }
+    return false;
+  }
+  // FLAME_ASSERT(valid_region.contains(feat->xy));
+
+  auto search_success =
+          stereo::inverse_depth_filter::search(params.fparams, epigeo, rescale_factor,
+                                               pfs.at(feat->frame_id)->img_pad[0],
+                                               fnew.img_pad[0],
+                                               feat->xy + offset, u_start + offset,
+                                               u_end + offset, &u_cmp);
+  feat->search_status = search_success;
+
+  // Parse output.
+  if (search_success == stereo::inverse_depth_filter::SUCCESS) {
+    if (feat->frame_id == curr_pf.id) {
+      std::vector<cv::KeyPoint> kps;
+      cv::KeyPoint kp; kp.pt = u_cmp; kps.push_back(kp);
+      cv::drawKeypoints(*debug_img, kps, *debug_img, cv::Scalar(0,255,0));
+    }
+
+  }else{
+
+      // Color failure by error status.
+      cv::Vec3b color;
+
+      if (search_success == stereo::inverse_depth_filter::FAIL_REF_PATCH_GRADIENT) {
+        color = cv::Vec3b(255, 255, 0); // Cyan.
+        if (feat->num_updates == 0) {
+          color = cv::Vec3b(255, 255, 255); // White.
+        }
+      } else if (search_success == stereo::inverse_depth_filter::FAIL_AMBIGUOUS_MATCH) {
+        color = cv::Vec3b(0, 0, 255); // Red.
+      } else if (search_success == stereo::inverse_depth_filter::FAIL_MAX_COST) {
+        color = cv::Vec3b(0, 255, 255); // Yellow.
+      } else if (search_success != stereo::inverse_depth_filter::SUCCESS) {
+        fprintf(stderr, "inverse_depth_filter::search: Unrecognized status!\n");
+        FLAME_ASSERT(false);
+        return false;
+      }
+
+//      cv::Point2i u_cmpi(u_cmp.x + 0.5f, u_cmp.y + 0.5f);
+//      cv::rectangle(*debug_img, u_cmpi - debug_feature_offset,
+//                    u_cmpi + debug_feature_offset,
+//                    cv::Scalar(color[0], color[1], color[2]), -1);
+//
+//      auto colormap = [&color](float a) { return color; };
+//      utils::applyColorMapLine(u_start, u_end, 1, 1, colormap, 0.5, debug_img);
+    return false;
+  }
+
+  *flow = u_cmp - offset;
+
+
 
   return true;
 }

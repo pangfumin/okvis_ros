@@ -109,7 +109,7 @@ struct Params {
   float scene_color_scale = 1.0f;
 
   // Debugging parameters.
-  bool debug_quiet = false;
+  bool debug_quiet = true;
   bool debug_print_timing_update = true;
   bool debug_print_timing_update_locking = true;
   bool debug_print_timing_frame_creation = true;

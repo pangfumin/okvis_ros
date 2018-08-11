@@ -101,6 +101,8 @@ namespace flame {
         TEST(InverseDepthFilterTest, research) {
             TestInverseDepthFilter testStereoEpipolar;
 
+
+
             EpipolarGeometry<float> epipolarGeometry(testStereoEpipolar.K0_, testStereoEpipolar.K0_.inverse(),
                                                      testStereoEpipolar.K1_, testStereoEpipolar.K1_.inverse());
             Eigen::Matrix3d C = testStereoEpipolar.T_C1_C0_.linear();
@@ -114,6 +116,8 @@ namespace flame {
             cv::cvtColor(testStereoEpipolar.distortedImage0_, kp_canvas, CV_GRAY2BGR);
             cv::cvtColor(testStereoEpipolar.distortedImage1_, kp_canvas1, CV_GRAY2BGR);
             cv::drawKeypoints(kp_canvas, kp0, kp_canvas, cv::Scalar(225, 0,0));
+
+
         }
 
     }
