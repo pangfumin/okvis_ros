@@ -55,6 +55,7 @@ struct Params {
   stereo::InverseDepthMeasModel::Params zparams;
 
   // IDepth filter params.
+  bool filte_with_stereo_image = true;
   float rescale_factor_min = 0.7f;
   float rescale_factor_max = 1.4f;
   float idepth_init = 0.01f;
