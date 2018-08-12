@@ -3,10 +3,12 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/core/eigen.hpp>
 
+#include <okvis/Estimator.hpp>
+
 namespace flame {
 
     uint64_t MeshEstimator::img_id_ = 0;
-    MeshEstimator::MeshEstimator(int width, int height,
+    MeshEstimator::MeshEstimator(okvis::Estimator* estimator, int width, int height,
                                  const Matrix3f& K0, const Matrix3f& K0inv,
                                  const Vector4f& distort0,
                                  const Matrix3f& K1, const Matrix3f& K1inv,
@@ -21,7 +23,8 @@ namespace flame {
         cv::eigen2cv(K1, K1cv_);
         cv::eigen2cv(distort1, D1cv_);
 
-        sensor_ = std::make_shared<flame::Flame>(width,
+        sensor_ = std::make_shared<flame::Flame>(estimator,
+                width,
                                                  height,
                                                  K0,
                                                  K0inv,

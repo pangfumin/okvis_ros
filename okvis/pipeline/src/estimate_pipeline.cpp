@@ -102,7 +102,7 @@ namespace okvis {
         distort1 << k1,k2,k3,k4;
 
         meshEstimatorPtr_
-                = std::make_shared<flame::MeshEstimator>(width, height,
+                = std::make_shared<flame::MeshEstimator>(&estimator_, width, height,
                                                          K.cast<float>(), K.inverse().cast<float>(),
                                                          distort.cast<float>(),
                                                          K1.cast<float>(), K1.inverse().cast<float>(),

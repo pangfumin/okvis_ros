@@ -37,11 +37,12 @@
 #include "flame/utils/image_utils.h"
 #include "flame/utils/keyframe_selector.h"
 
+#include <okvis/Estimator.hpp>
 namespace flame {
 
 namespace dgraph = optimizers::nltgv2_l1_graph_regularizer;
 
-Flame::Flame(int width, int height,
+Flame::Flame(okvis::Estimator* estimator, int width, int height,
              const Matrix3f& K0, const Matrix3f& K0inv,
              const Matrix3f& K1, const Matrix3f& K1inv,
              const Params& params) :
@@ -84,6 +85,7 @@ Flame::Flame(int width, int height,
     idepthmap_(height, width, std::numeric_limits<float>::quiet_NaN()),
     w1_map_(height, width, std::numeric_limits<float>::quiet_NaN()),
     w2_map_(height, width, std::numeric_limits<float>::quiet_NaN()),
+    estimator_(estimator),
     debug_img_detections_(height, width),
     debug_img_wireframe_(height, width),
     debug_img_features_(height, width),

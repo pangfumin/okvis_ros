@@ -150,7 +150,7 @@ void ThreadedKFVio::init() {
   Eigen::Vector4d distort;
   distort << k1,k2,k3,k4;
   meshEstimatorPtr_
-          = std::make_shared<flame::MeshEstimator>(width, height,
+          = std::make_shared<flame::MeshEstimator>(&estimator_, width, height,
                   K.cast<float>(),  K.inverse().cast<float>(),
                           distort.cast<float>(), meshParams);
   

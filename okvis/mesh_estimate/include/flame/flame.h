@@ -48,6 +48,10 @@
 #include <flame/utils/stats_tracker.h>
 #include "flame/utils/delaunay.h"
 
+
+namespace okvis {
+    class Estimator;
+}
 namespace flame {
 
 // The main optimization graph.
@@ -120,7 +124,7 @@ class Flame final {
    * @param[Kinv] Kinv Inverse of the camera intrinsics matrix.
    * @param[in] params Parameter struct.
    */
-  Flame(int width, int height,
+  Flame(okvis::Estimator* estimator, int width, int height,
         const Matrix3f& K0, const Matrix3f& K0inv,
         const Matrix3f& K1, const Matrix3f& K1inv,
         const Params& params = Params());
@@ -557,6 +561,9 @@ class Flame final {
   Image1f idepthmap_; // Dense idepthmap.
   Image1f w1_map_; // Dense plane parameters.
   Image1f w2_map_; // Dense plane parameters.
+
+
+    okvis::Estimator* estimator_;
 
   // // Debug images.
   Image3b debug_img_detections_;

@@ -263,7 +263,7 @@ int main(int argc, char **argv)
     /// add images
     okvis::Time t;
 
-      cv::Mat filtered0 = cv::imread(
+    cv::Mat filtered0 = cv::imread(
           path + "/cam" + std::to_string(0) + "/data/" + *cam_iterators.at(0),
           cv::IMREAD_GRAYSCALE);
     cv::Mat filtered1 = cv::imread(
@@ -326,10 +326,7 @@ int main(int argc, char **argv)
 
     ++counter;
 
-
     poseViewer.display();
-
-
 
     // display progress
     if (counter % 20 == 0) {

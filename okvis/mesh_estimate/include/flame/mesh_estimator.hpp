@@ -3,11 +3,17 @@
 
 #include "flame/flame.h"
 #include <okvis/kinematics/Transformation.hpp>
+
+namespace okvis {
+    class Estimator;
+}
+
+
 namespace flame {
 
     class MeshEstimator {
     public:
-        MeshEstimator(int width, int height,
+        MeshEstimator(okvis::Estimator* estimator, int width, int height,
                       const Matrix3f& K0, const Matrix3f& K0inv,
                       const Vector4f& distort0,
                       const Matrix3f& K1, const Matrix3f& K1inv,
