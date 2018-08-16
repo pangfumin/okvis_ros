@@ -67,6 +67,13 @@ PinholeCamera<DISTORTION_T>::PinholeCamera(int imageWidth,
   one_over_fu_ = 1.0 / fu_;  //< 1.0 / fu_
   one_over_fv_ = 1.0 / fv_;  //< 1.0 / fv_
   fu_over_fv_ = fu_ / fv_;  //< fu_ / fv_
+
+  cvK_ = (cv::Mat_<float>(3,3) << (float)fu_, 0, (float)cu_, 0, (float)fv_, (float)cv_, 0, 0, 1);
+
+  Eigen::VectorXd  distortion_parameters;
+  distortion.getParameters(distortion_parameters);
+  cvD_ = (cv::Mat_<float>(4,1) << (float)distortion_parameters[0], (float)distortion_parameters[1],
+          (float)distortion_parameters[2],(float)distortion_parameters[3]);
 }
 
 // overwrite all intrinsics - use with caution !

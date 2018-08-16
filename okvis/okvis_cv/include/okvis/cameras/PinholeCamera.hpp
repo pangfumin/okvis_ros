@@ -48,6 +48,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wnon-virtual-dtor"
 #include <opencv2/core/core.hpp> // Code that causes warning goes here
+#include <opencv2/imgproc/imgproc.hpp> // Code that causes warning goes here
 #pragma GCC diagnostic pop
 #include "okvis/cameras/CameraBase.hpp"
 #include "okvis/cameras/DistortionBase.hpp"
@@ -308,6 +309,13 @@ class PinholeCamera : public CameraBase
     return distortion_.type();
   }
 
+
+  inline cv::Mat undistortImage(const cv::Mat&  distort) {
+    cv::Mat undistort;
+    cv::undistort(distort, undistort, cvK_, cvD_);
+    return undistort;
+  }
+
  protected:
 
   /// \brief No default constructor.
@@ -324,6 +332,10 @@ class PinholeCamera : public CameraBase
   double one_over_fv_;  ///< 1.0 / fv_
   double fu_over_fv_;  ///< fu_ / fv_
 
+
+    /// for undistort image
+    cv::Mat cvK_;
+    cv::Mat cvD_;
 };
 
 }  // namespace cameras

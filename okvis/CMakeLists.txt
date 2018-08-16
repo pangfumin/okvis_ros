@@ -202,6 +202,10 @@ include_directories(okvis_time/include)
 add_subdirectory(okvis_time)
 add_dependencies(okvis_time okvis_util)
 
+# FLAME
+include_directories(mesh_util/include)
+add_subdirectory(mesh_util)
+
 include_directories(okvis_cv/include)
 add_subdirectory(okvis_cv)
 add_dependencies(okvis_cv  okvis_util)
@@ -209,9 +213,7 @@ add_dependencies(okvis_cv  okvis_util)
 include_directories(okvis_common/include)
 add_subdirectory(okvis_common)
 
-# FLAME
-include_directories(mesh_util/include)
-add_subdirectory(mesh_util)
+
 
 include_directories(okvis_ceres/include)
 add_subdirectory(okvis_ceres)

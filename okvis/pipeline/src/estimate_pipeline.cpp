@@ -232,7 +232,8 @@ namespace okvis {
         OptimizationResults result;
         estimator_.optimize(parameters_.optimization.max_iterations, 2, false);
 
-        // get timestamp of last frame in IMU window. Need to do this before marginalization as it will be removed there (if not keyframe)
+        // get timestamp of last frame in IMU window.
+        // Need to do this before marginalization as it will be removed there (if not keyframe)
         if (estimator_.numFrames()
             > size_t(parameters_.optimization.numImuFrames)) {
             deleteImuMeasurementsUntil = estimator_.multiFrame(

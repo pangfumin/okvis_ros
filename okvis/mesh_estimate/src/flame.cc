@@ -1436,6 +1436,9 @@ bool Flame::updateFeatureIDepths(const Params& params,
       left_success = true;
       left_update_success = true;
       left_update_cnt ++;
+
+
+      // todo(pang): add observation into estimator
     }
 
     /**
@@ -1514,6 +1517,10 @@ bool Flame::updateFeatureIDepths(const Params& params,
     right_success = true;
     right_update_success = true;
     right_update_cnt ++;
+
+
+    // todo(pang): add observation into estimator
+
 
 
     if (left_update_success && right_update_success) {

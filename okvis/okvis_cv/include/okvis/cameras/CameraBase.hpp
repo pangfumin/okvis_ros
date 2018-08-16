@@ -336,6 +336,8 @@ class CameraBase
   /// \brief Obtain the projection type
   virtual const std::string distortionType() const = 0;
 
+  virtual cv::Mat undistortImage(const cv::Mat&  distort) = 0;
+
  protected:
 
   /// \brief Check if the keypoint is masked.

@@ -70,6 +70,12 @@ Frame::Ptr Frame::create(const SE3f& pose, const Image1b& img,
   return frame;
 }
 
+Frame::Ptr Frame::create(const cv::Mat1b& img,
+                  int num_levels, int border) {
+  SE3f pose;
+  return create(pose,  img, 0, num_levels, border);
+}
+
 }  // namespace utils
 
 }  // namespace flame

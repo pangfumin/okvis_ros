@@ -54,6 +54,7 @@
 #pragma GCC diagnostic pop
 #include <okvis/Time.hpp>
 #include <okvis/assert_macros.hpp>
+#include <flame/utils/frame.h>
 #include "okvis/cameras/CameraBase.hpp"
 
 /// \brief okvis Main namespace of this package.
@@ -195,6 +196,8 @@ class Frame
   std::vector<cv::KeyPoint> keypoints_;  ///< we store keypoints using OpenCV's struct
   cv::Mat descriptors_;  ///< we store the descriptors using OpenCV's matrices
   std::vector<uint64_t> landmarkIds_;  ///< landmark Id, if associated -- 0 otherwise
+
+    std::shared_ptr<flame::utils::Frame> dense_frame_;  ///< used for mesh estimate
 };
 
 }  // namespace okvis
