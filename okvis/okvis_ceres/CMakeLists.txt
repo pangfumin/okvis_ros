@@ -43,27 +43,24 @@ install(TARGETS ${PROJECT_NAME}
 )
 install(DIRECTORY include/ DESTINATION ${INSTALL_INCLUDE_DIR} COMPONENT dev FILES_MATCHING PATTERN "*.hpp")
 
-# testing
-if(BUILD_TESTS)
-  if(APPLE)
-    add_definitions(-DGTEST_HAS_TR1_TUPLE=1)
-  else()
-    add_definitions(-DGTEST_HAS_TR1_TUPLE=0)
-  endif(APPLE)
-  enable_testing()
-  set(PROJECT_TEST_NAME ${PROJECT_NAME}_test)
-  add_executable(${PROJECT_TEST_NAME}
-    test/test_main.cpp
-    test/TestEstimator.cpp
-    test/TestHomogeneousPointError.cpp
-    test/TestReprojectionError.cpp
-    test/TestImuError.cpp
-    test/TestMap.cpp
-    test/TestMarginalization.cpp
-  )
-  target_link_libraries(${PROJECT_TEST_NAME} 
-    ${PROJECT_NAME} 
-    ${GTEST_LIBRARY}  
-    pthread)
-  add_test(test ${PROJECT_TEST_NAME})
-endif()
+
+
+# test
+enable_testing()
+
+file(GLOB TEST_SOURCES "test/*.cpp")
+
+set(TEST_SOURCES
+        #test/TestEstimator.cpp
+        test/TestHomogeneousPointError.cpp
+        test/TestReprojectionError.cpp
+        test/TestImuError.cpp
+        test/TestMap.cpp
+        test/TestMarginalization.cpp)
+
+add_executable(${PROJECT_NAME}_test ${TEST_SOURCES} .)
+target_link_libraries(${PROJECT_NAME}_test pthread ${PROJECT_NAME} okvis_util)
+set_target_properties(${PROJECT_NAME}_test PROPERTIES COMPILE_FLAGS "-std=c++11 -Wno-deprecated-register")
+
+add_test(NAME ${PROJECT_NAME}_test COMMAND ${PROJECT_NAME}_test --gtest_color=yes)
+

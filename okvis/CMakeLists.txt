@@ -20,7 +20,7 @@ option (BUILD_APPS
         "Builds a demo app (which requires boost)" ON)
 
 option (BUILD_TESTS
-        "Builds all gtests" OFF) 
+        "Builds all gtests" ON)
 SET(N_CORES 4 CACHE STRING "Using N number of cores for parallel build")
 
 # Offer the user the choice of overriding the installation directories
@@ -188,38 +188,6 @@ if(${HAS_BUILD_OPENGV})  # using absolute path
 SET(OpenGV_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/3rdpart_install/include)
 SET(OpenGV_LIBRARIES ${PROJECT_SOURCE_DIR}/3rdpart_install/lib/libopengv.a)
 endif()
-
-if(${BUILD_TESTS})
-  # gmock
-  # http://stackoverflow.com/questions/9689183/cmake-googletest
-  ExternalProject_Add(
-    googlemock
-    URL https://googlemock.googlecode.com/files/gmock-1.7.0.zip
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/gmock
-    CMAKE_ARGS -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-    BUILD_COMMAND make -j${N_CORES}
-    INSTALL_COMMAND ""
-  )
-  ExternalProject_Get_Property(googlemock source_dir)
-  set(GMOCK_INCLUDE_DIR ${source_dir}/include)
-  set(GTEST_INCLUDE_DIR ${source_dir}/gtest/include)
-  include_directories(BEFORE ${GMOCK_INCLUDE_DIR})
-  include_directories(BEFORE ${GTEST_INCLUDE_DIR})
-  ExternalProject_Get_Property(googlemock binary_dir)
-  set(GMOCK_LIBRARY_PATH ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gmock.a)
-  set(GMOCK_LIBRARY gmock)
-  add_library(${GMOCK_LIBRARY} UNKNOWN IMPORTED)
-  set_property(TARGET ${GMOCK_LIBRARY} PROPERTY IMPORTED_LOCATION
-                  ${GMOCK_LIBRARY_PATH} )
-  add_dependencies(${GMOCK_LIBRARY} googlemock)
-  set(GTEST_LIBRARY_PATH ${binary_dir}/gtest/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a)
-  set(GTEST_LIBRARY gtestlocal)
-  add_library(${GTEST_LIBRARY} UNKNOWN IMPORTED)
-  set_property(TARGET ${GTEST_LIBRARY} PROPERTY IMPORTED_LOCATION
-                  ${GTEST_LIBRARY_PATH})
-  add_dependencies(${GTEST_LIBRARY} googlemock)
-endif()
-
 
 
 # BUILD LOCAL DEPENDENCIES
