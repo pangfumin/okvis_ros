@@ -310,7 +310,7 @@ class PinholeCamera : public CameraBase
   }
 
 
-  inline cv::Mat undistortImage(const cv::Mat&  distort) {
+  inline cv::Mat undistortImage(const cv::Mat&  distort) const {
     cv::Mat undistort;
     cv::undistort(distort, undistort, cvK_, cvD_);
     return undistort;

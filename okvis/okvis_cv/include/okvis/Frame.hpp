@@ -188,6 +188,10 @@ class Frame
   /// \return The number of keypoints.
   inline size_t numKeypoints() const;
 
+  inline std::shared_ptr<flame::utils::Frame>& getDenseFrame() {
+      return dense_frame_;
+  }
+
  protected:
   cv::Mat image_;  ///< the image as OpenCV's matrix
   std::shared_ptr<const cameras::CameraBase> cameraGeometry_;  ///< the camera geometry

@@ -336,7 +336,7 @@ class CameraBase
   /// \brief Obtain the projection type
   virtual const std::string distortionType() const = 0;
 
-  virtual cv::Mat undistortImage(const cv::Mat&  distort) = 0;
+  virtual cv::Mat undistortImage(const cv::Mat&  distort) const = 0;
 
  protected:
 

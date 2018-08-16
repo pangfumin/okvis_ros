@@ -47,8 +47,12 @@ struct Frame {
   // Create a frame pointer object from a pose and raw image.
   static Frame::Ptr create(const Sophus::SE3f& pose, const cv::Mat1b& img,
                            int id, int num_levels, int border);
-  static Frame::Ptr create(const cv::Mat1b& img,
-                           int num_levels, int border);
+  static Frame::Ptr create(const cv::Mat& img,
+                                       int num_levels, int border) {
+    SE3f pose;
+    return create(pose,  img, 0, num_levels, border);
+  }
+
 
   uint32_t id; // Image number/ID.
   SE3f pose; // Pose of this image.

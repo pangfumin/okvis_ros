@@ -46,6 +46,12 @@
 #include <okvis/Frame.hpp>
 #include <okvis/cameras/NCameraSystem.hpp>
 
+namespace flame {
+    namespace utils {
+        class Frame;
+    }
+}
+
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
@@ -260,6 +266,10 @@ class MultiFrame
   inline bool hasOverlap(size_t cameraIndexSeenBy, size_t cameraIndex) const
   {
     return cameraSystem_.hasOverlap(cameraIndexSeenBy, cameraIndex);
+  }
+
+  inline std::shared_ptr<flame::utils::Frame>& getDenseFrame(size_t cameraIndex) {
+    return frames_[cameraIndex].getDenseFrame();
   }
 
  protected:

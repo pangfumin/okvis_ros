@@ -7,7 +7,10 @@
 #include <okvis/ceres/ImuError.hpp>
 #include <okvis/IdProvider.hpp>
 #include <flame/mesh_estimator.hpp>
+#include <flame/utils/frame.h>
 #include <okvis/VioVisualizer.hpp>
+#include <okvis/cameras/PinholeCamera.hpp>
+#include <okvis/cameras/RadialTangentialDistortion.hpp>
 
 namespace okvis {
     static const okvis::Duration temporal_imu_data_overlap(0.02);  // overlap of imu data before and after two consecutive frames [seconds]
@@ -193,12 +196,22 @@ namespace okvis {
                                                 multiFrame->timestamp());
         }
 
+        int border = meshParams.fparams.win_size;
         for (size_t i = 0; i < parameters_.nCameraSystem.numCameras(); i++) {
             okvis::kinematics::Transformation T_WC = T_WS
                                                      * (*parameters_.nCameraSystem.T_SC(i));
 
+            // for brisk feature
             frontend_.detectAndDescribe(i, multiFrame, T_WC, nullptr);
+
+            // todo(pang): for dense frame
+            cv::Mat undistort = multiFrame->geometry(i)->undistortImage(multiFrame->image(i));
+            multiFrame->getDenseFrame(i) =
+                    flame::utils::Frame::create(undistort,1, border);
         }
+
+//        cv::Mat grad0 = multiFrame->getDenseFrame(0)->gradx[0];
+//        cv::imshow("grad", grad0);
 
         /**************************  addState and match  ******************************/
 
@@ -219,6 +232,8 @@ namespace okvis {
 
         okvis::kinematics::Transformation T_WC0 = T_WS * (*parameters_.nCameraSystem.T_SC(0));
         okvis::kinematics::Transformation T_WC1 = T_WS * (*parameters_.nCameraSystem.T_SC(1));
+
+        // todo(pang): if is Keyframe, detect dense frame
         meshEstimatorPtr_->processFrame(multiFrame->timestamp().toSec(),
                                         T_WC0, multiFrame->image(0),
                                         T_WC1, multiFrame->image(1), asKeyframe);
