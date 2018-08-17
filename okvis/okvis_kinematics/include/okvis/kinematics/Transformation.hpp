@@ -128,6 +128,10 @@ class Transformation
   /// \brief Returns the Quaternion q_AB (as an Eigen Quaternion).
   const Eigen::Map<Eigen::Quaterniond> & q() const;
 
+  const Eigen::Quaterniond  hamilton_quaternion() const {
+    return Eigen::Quaterniond(C_);
+  }
+
   /// \brief Get the upper 3x4 part of the homogeneous transformation matrix T_AB.
   Eigen::Matrix<double, 3, 4> T3x4() const;
 

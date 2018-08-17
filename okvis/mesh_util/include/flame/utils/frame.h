@@ -28,6 +28,8 @@
 #include "flame/types.h"
 #include "flame/utils/triangulator.h"
 
+#include <okvis/kinematics/Transformation.hpp>
+
 namespace flame {
 
 namespace utils {
@@ -45,17 +47,17 @@ struct Frame {
       img_pad(num_lvls), gradx_pad(num_lvls), grady_pad(num_lvls) {}
 
   // Create a frame pointer object from a pose and raw image.
-  static Frame::Ptr create(const Sophus::SE3f& pose, const cv::Mat1b& img,
+  static Frame::Ptr create(const okvis::kinematics::Transformation & pose, const cv::Mat1b& img,
                            int id, int num_levels, int border);
   static Frame::Ptr create(const cv::Mat& img,
                                        int num_levels, int border) {
-    SE3f pose;
+    okvis::kinematics::Transformation pose;
     return create(pose,  img, 0, num_levels, border);
   }
 
 
   uint32_t id; // Image number/ID.
-  SE3f pose; // Pose of this image.
+  okvis::kinematics::Transformation pose; // Pose of this image.
   ImagePyramidb img; // Image pyramid.
   ImagePyramidf gradx; // Horizontal gradient pyramid.
   ImagePyramidf grady; // Vertical gradient pyramid.

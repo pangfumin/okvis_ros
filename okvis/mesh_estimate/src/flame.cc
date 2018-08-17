@@ -35,7 +35,6 @@
 
 #include "flame/utils/visualization.h"
 #include "flame/utils/image_utils.h"
-#include "flame/utils/keyframe_selector.h"
 
 #include <okvis/Estimator.hpp>
 namespace flame {
@@ -120,9 +119,9 @@ Flame::~Flame() {
 }
 
 bool Flame::update(double time, uint32_t img_id,
-                   const Sophus::SE3f& T_new0,
+                   const okvis::kinematics::Transformation & T_new0,
                    const Image1b& img_new0,
-                   const Sophus::SE3f& T_new1,
+                   const okvis::kinematics::Transformation & T_new1,
                    const Image1b& img_new1,
                    bool is_poseframe,
                    const Image1f& idepths_true) {
@@ -247,10 +246,10 @@ bool Flame::update(double time, uint32_t img_id,
 
   /*==================== Get current smoothed solution  ====================*/
   // Load epipolar geometry between previous and new frame.
-  Sophus::SE3f T_prev_to_new = fnew_->pose.inverse() * fprev_->pose;
+  okvis::kinematics::Transformation T_prev_to_new = fnew_->pose.inverse() * fprev_->pose;
   stereo::EpipolarGeometry<float> epigeo(K0_,K0inv_, K0_, K0inv_);
-  epigeo.loadGeometry(T_prev_to_new.unit_quaternion(),
-                       T_prev_to_new.translation());
+  epigeo.loadGeometry(T_prev_to_new.hamilton_quaternion().cast<float>(),
+                       T_prev_to_new.r().cast<float>());
 
   // Project graph into new frame.
   graph_mtx_.lock();
@@ -482,161 +481,6 @@ bool Flame::update(double time, uint32_t img_id,
 
   return true;
 }
-//
-//void Flame::prunePoseFrames(const std::vector<uint32_t>& pfs_to_keep) {
-//  // Locking the update_mtx_ might be overkill. We really just need to lock
-//  // feats_, new_feats_, and pfs_, and detection_queue_.
-//  std::lock_guard<std::recursive_mutex> update_lock(update_mtx_);
-//  std::lock_guard<std::mutex> detection_lock(detection_queue_mtx_);
-//  std::lock_guard<std::mutex> pfs_lock(pfs_mtx_);
-//  std::lock_guard<std::mutex> new_feats_lock(new_feats_mtx_);
-//
-//  FrameIDToFrame pruned_pfs;
-//  bool found_curr_pf = false; // Make sure the current poseframe is in the list.
-//  for (int ii = 0; ii < pfs_to_keep.size(); ++ii) {
-//    if (pfs_.count(pfs_to_keep[ii]) > 0) {
-//      pruned_pfs[pfs_to_keep[ii]] = pfs_[pfs_to_keep[ii]];
-//      if (pfs_to_keep[ii] == curr_pf_->id) {
-//        found_curr_pf = true;
-//      }
-//    }
-//  }
-//
-//  if (!found_curr_pf) {
-//    if (!params_.debug_quiet) {
-//      fprintf(stderr, "Flame[FAIL]: Current poseframe is not in to_keep list. Not updating poses.\n");
-//    }
-//    return;
-//  }
-//
-//  // Remove any detection data items if any pfs are deleted.
-//  std::deque<DetectionData> pruned_detection_data;
-//  for (const auto& data : detection_queue_) {
-//    if ((pruned_pfs.count(data.ref.id) > 0) &&
-//        (pruned_pfs.count(data.cmp.id) > 0)) {
-//      // Both pfs still exist. Add to queue.
-//      pruned_detection_data.push_back(data);
-//    }
-//  }
-//  detection_queue_.swap(pruned_detection_data);
-//
-//  if (pruned_pfs.size() == 0) {
-//    // No more pfs. Reset.
-//    clear();
-//    return;
-//  }
-//
-//  int row_offset = 0;
-//  if (params_.do_letterbox) {
-//    // Only detect features in middle third of image.
-//    row_offset = height_/3;
-//  }
-//
-//  // Move features whose parent pose has been deleted to new oldest pf.
-//  int border = params_.rescale_factor_max * params_.fparams.win_size / 2 + 1;
-//  cv::Rect valid_region(border, border + row_offset,
-//                        width_ - 2*border, height_ - 2*border - 2*row_offset);
-//  auto pfit = pruned_pfs.crbegin(); // Pointer to now oldest pf.
-//  for (int ii = 0; ii < feats_.size(); ++ii) {
-//    auto& feat = feats_[ii];
-//    if (pruned_pfs.count(feat.frame_id) == 0) {
-//      stereo::EpipolarGeometry<float> epipf(K_, Kinv_);
-//      Sophus::SE3f T_old_to_new = pfit->second->pose.inverse() *
-//          pfs_[feat.frame_id]->pose;
-//      epipf.loadGeometry(T_old_to_new.unit_quaternion(),
-//                         T_old_to_new.translation());
-//
-//      cv::Point2f u_pf;
-//      float idepth_pf, var_pf;
-//      bool move_success =
-//          stereo::inverse_depth_filter::predict(epipf,
-//                                                params_.fparams.process_var_factor,
-//                                                feat.xy,
-//                                                feat.idepth_mu,
-//                                                feat.idepth_var,
-//                                                &u_pf, &idepth_pf, &var_pf);
-//
-//      feat.frame_id = pfit->second->id;
-//      feat.xy = u_pf;
-//      float old_idepth = feat.idepth_mu;
-//      feat.idepth_mu = idepth_pf;
-//
-//      // Project idepth variance.
-//      float var_factor4 = idepth_pf / old_idepth;
-//      var_factor4 *= var_factor4;
-//      var_factor4 *= var_factor4;
-//
-//      if (idepth_pf < 1e-6) {
-//        // If feat_ref.idepth_mu == 0, then var_factor4 is inf.
-//        var_factor4 = 1;
-//      }
-//      feat.idepth_var *= var_factor4;
-//
-//      if (!move_success || !valid_region.contains(u_pf)) {
-//        // Move wasn't successful or pixel projected OOB.
-//        feat.valid = false;
-//        continue;
-//      }
-//    }
-//    FLAME_ASSERT(pruned_pfs.count(feat.frame_id) > 0);
-//    FLAME_ASSERT(pruned_pfs.count(feats_[ii].frame_id) > 0);
-//  }
-//
-//  // Do the same for new features.
-//  std::vector<FeatureWithIDepth> pruned_new_feats;
-//  pruned_new_feats.reserve(new_feats_.size()); // Copy instead of marking invalid.
-//  for (int ii = 0; ii < new_feats_.size(); ++ii) {
-//    auto& feat = new_feats_[ii];
-//    if (pruned_pfs.count(feat.frame_id) == 0) {
-//      stereo::EpipolarGeometry<float> epipf(K_, Kinv_);
-//      Sophus::SE3f T_old_to_new = pfit->second->pose.inverse() *
-//          pfs_[feat.frame_id]->pose;
-//      epipf.loadGeometry(T_old_to_new.unit_quaternion(),
-//                         T_old_to_new.translation());
-//
-//      cv::Point2f u_pf;
-//      float idepth_pf, var_pf;
-//      bool move_success =
-//          stereo::inverse_depth_filter::predict(epipf,
-//                                                params_.fparams.process_var_factor,
-//                                                feat.xy,
-//                                                feat.idepth_mu,
-//                                                feat.idepth_var,
-//                                                &u_pf, &idepth_pf, &var_pf);
-//
-//      if (!move_success || !valid_region.contains(u_pf)) {
-//        // Remove this feature.
-//        continue;
-//      }
-//
-//      feat.frame_id = pfit->second->id;
-//      feat.xy = u_pf;
-//      float old_idepth = feat.idepth_mu;
-//      feat.idepth_mu = idepth_pf;
-//
-//      // Project idepth variance.
-//      float var_factor4 = idepth_pf / old_idepth;
-//      var_factor4 *= var_factor4;
-//      var_factor4 *= var_factor4;
-//
-//      if (idepth_pf < 1e-6) {
-//        // If feat_ref.idepth_mu == 0, then var_factor4 is inf.
-//        var_factor4 = 1;
-//      }
-//      feat.idepth_var *= var_factor4;
-//    }
-//
-//    // Push back updated feature.
-//    pruned_new_feats.push_back(feat);
-//  }
-//  new_feats_.swap(pruned_new_feats);
-//
-//  // Swap the maps.
-//  pfs_.swap(pruned_pfs);
-//
-//  return;
-//}
-
 
 void Flame::detectFeatures(DetectionData& data) {
   // Detect new features if this is a poseframe.
@@ -1056,9 +900,9 @@ void Flame::detectFeatures(const Params& params,
   }
 
   // Load epipolar geometry from prev to ref.
-  Sophus::SE3f T_ref_to_prev(fprev.pose.inverse() * fref.pose);
-  epigeo.loadGeometry(T_ref_to_prev.unit_quaternion(),
-                      T_ref_to_prev.translation());
+  okvis::kinematics::Transformation T_ref_to_prev(fprev.pose.inverse() * fref.pose);
+  epigeo.loadGeometry(T_ref_to_prev.hamilton_quaternion().cast<float>(),
+                      T_ref_to_prev.r().cast<float>());
 
   // Coarse pass.
   Image1f score(height, width, std::numeric_limits<float>::quiet_NaN());
@@ -1190,15 +1034,15 @@ bool Flame::updateFeatureIDepths(const Params& params,
      */
     stereo::EpipolarGeometry<float> epigeo_left(K0, K0inv, K0, K0inv);
     // Load geometry.
-    Sophus::SE3f T_ref_to_new = fnew.pose.inverse() * pfs.at(fii.frame_id)->pose;
-    Sophus::SE3f T_new_to_ref = pfs.at(fii.frame_id)->pose.inverse() * fnew.pose;
-    epigeo_left.loadGeometry(T_ref_to_new.unit_quaternion(),
-                        T_ref_to_new.translation());
+    okvis::kinematics::Transformation T_ref_to_new = fnew.pose.inverse() * pfs.at(fii.frame_id)->pose;
+    okvis::kinematics::Transformation T_new_to_ref = pfs.at(fii.frame_id)->pose.inverse() * fnew.pose;
+    epigeo_left.loadGeometry(T_ref_to_new.hamilton_quaternion().cast<float>(),
+                        T_ref_to_new.r().cast<float>());
 
     bool go_on_left = true;
 
     // Check baseline.
-    float baseline = T_ref_to_new.translation().norm();
+    float baseline = T_ref_to_new.r().cast<float>().norm();
     if (baseline < params.min_baseline) {
       // Not enough baseline. Skip.
       go_on_left = false;
@@ -1403,10 +1247,10 @@ bool Flame::updateFeatureIDepths(const Params& params,
 
     stereo::EpipolarGeometry<float> epigeo_right(K0, K0inv, K1, K1inv);
     // Load geometry.
-    Sophus::SE3f T_ref_to_right = fnew_right.pose.inverse() * pfs.at(fii.frame_id)->pose;
-    Sophus::SE3f T_right_to_ref = pfs.at(fii.frame_id)->pose.inverse() * fnew_right.pose;
-    epigeo_right.loadGeometry(T_ref_to_right.unit_quaternion(),
-                        T_ref_to_right.translation());
+    okvis::kinematics::Transformation T_ref_to_right = fnew_right.pose.inverse() * pfs.at(fii.frame_id)->pose;
+    okvis::kinematics::Transformation T_right_to_ref = pfs.at(fii.frame_id)->pose.inverse() * fnew_right.pose;
+    epigeo_right.loadGeometry(T_ref_to_right.hamilton_quaternion().cast<float>(),
+                        T_ref_to_right.r().cast<float>());
 
     /*==================== Track feature in new image ====================*/
     cv::Point2f right_flow;
@@ -1616,9 +1460,9 @@ bool Flame::trackFeature(const Params& params,
     // If this feature has converged already, move it so that it's parent
     // pose is the most recent poseframe frame rather than throw it away.
     stereo::EpipolarGeometry<float> epipf(K, Kinv, K, Kinv);
-    Sophus::SE3f T_old_to_new = curr_pf.pose.inverse() * pfs.at(feat->frame_id)->pose;
-    epipf.loadGeometry(T_old_to_new.unit_quaternion(),
-                       T_old_to_new.translation());
+    okvis::kinematics::Transformation T_old_to_new = curr_pf.pose.inverse() * pfs.at(feat->frame_id)->pose;
+    epipf.loadGeometry(T_old_to_new.hamilton_quaternion().cast<float>(),
+                       T_old_to_new.r().cast<float>());
 
     cv::Point2f u_pf;
     float idepth_pf, var_pf;
@@ -1936,10 +1780,10 @@ void Flame::projectFeatures(const Params& params,
     // Load geometry.
     stereo::EpipolarGeometry<float> epigeo(K, Kinv, K, Kinv);
     auto& fref = pfs.at(feat_ref.frame_id);
-    Sophus::SE3f T_ref_to_cur = fcur.pose.inverse() * fref->pose;
-    Sophus::SE3f T_cur_to_ref = fref->pose.inverse() * fcur.pose;
-    epigeo.loadGeometry(T_ref_to_cur.unit_quaternion(),
-                        T_ref_to_cur.translation());
+    okvis::kinematics::Transformation T_ref_to_cur = fcur.pose.inverse() * fref->pose;
+    okvis::kinematics::Transformation T_cur_to_ref = fref->pose.inverse() * fcur.pose;
+    epigeo.loadGeometry(T_ref_to_cur.hamilton_quaternion().cast<float>(),
+                        T_ref_to_cur.r().cast<float>());
 
     if (!feat_ref.valid) {
       feat_cur.valid = false;
@@ -2125,7 +1969,9 @@ bool Flame::syncGraph(const Params& params,
     Vector3f pix(feat.xy.x, feat.xy.y, 1.0f);
     pix /= idepth;
     Vector3f xyz(Kinv * pix);
-    xyz = pfs.at(feat.frame_id)->pose * xyz;
+    xyz = pfs.at(feat.frame_id)->pose.C().cast<float>() * xyz
+            + pfs.at(feat.frame_id)->pose.r().cast<float>();
+
 
     if (feat.valid && (var < params.idepth_var_max_graph)
         && (-xyz(1) >= params.min_height) && (-xyz(1) <= params.max_height)) {

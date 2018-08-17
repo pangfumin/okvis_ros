@@ -20,7 +20,7 @@ set(MESH_UTIL_SRCS
         src/utils/delaunay.cc
         src/utils/frame.cc
         src/utils/image_utils.cc
-        src/utils/keyframe_selector.cc
+        #src/utils/keyframe_selector.cc
         src/utils/pyramids.cc
         src/utils/rasterization.cc)
 

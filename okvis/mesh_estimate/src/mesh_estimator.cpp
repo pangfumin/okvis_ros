@@ -44,20 +44,20 @@ namespace flame {
         cv::Mat img_gray_undist0;
         cv::undistort(img_gray0, img_gray_undist0, K0cv_, D0cv_);
 
-        SE3d pose0(T_WC0.C(), T_WC0.r());
+
 
         cv::Mat img_gray_undist1;
         cv::undistort(img_gray1, img_gray_undist1, K1cv_, D1cv_);
 
-        SE3d pose1(T_WC1.C(), T_WC1.r());
+
 
         bool is_poseframe = isKeyframe;
 
         bool update_success = false;
 
         update_success = sensor_->update(time, img_id,
-                pose0.cast<float>(), img_gray_undist0,
-                                         pose1.cast<float>(), img_gray_undist1,
+                T_WC0, img_gray_undist0,
+                                        T_WC1, img_gray_undist1,
                                              is_poseframe);
 //        if (!update_success) {
 //            //ROS_WARN("FlameOffline: Unsuccessful update.\n");

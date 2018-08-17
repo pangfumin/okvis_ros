@@ -25,12 +25,13 @@
 #include <limits>
 
 #include "flame/utils/pyramids.h"
+#include <okvis/kinematics/Transformation.hpp>
 
 namespace flame {
 
 namespace utils {
 
-Frame::Ptr Frame::create(const SE3f& pose, const Image1b& img,
+Frame::Ptr Frame::create(const okvis::kinematics::Transformation& pose, const Image1b& img,
                          int id, int num_levels, int border) {
   Frame::Ptr frame = std::make_shared<Frame>(num_levels);
 

@@ -148,9 +148,9 @@ class Flame final {
    * @return True if update successful. Outputs are only valid if returns True.
    */
   bool update(double time, uint32_t img_id,
-              const Sophus::SE3f& T_new0,
+              const okvis::kinematics::Transformation & T_new0,
               const Image1b& img_new0,
-              const Sophus::SE3f& T_new1,
+              const okvis::kinematics::Transformation & T_new1,
               const Image1b& img_new1,
               bool is_poseframe,
               const Image1f& idepths_true = Image1f());
