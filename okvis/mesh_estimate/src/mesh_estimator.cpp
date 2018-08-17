@@ -7,7 +7,6 @@
 
 namespace flame {
 
-    uint64_t MeshEstimator::img_id_ = 0;
     MeshEstimator::MeshEstimator(okvis::Estimator* estimator, int width, int height,
                                  const Matrix3f& K0, const Matrix3f& K0inv,
                                  const Vector4f& distort0,
@@ -35,7 +34,7 @@ namespace flame {
 
     }
 
-    void MeshEstimator::processFrame( const double time,
+    void MeshEstimator::processFrame( const double time, int32_t img_id,
                       const okvis::kinematics::Transformation& T_WC0,
                                       const cv::Mat& img_gray0,
                                       const okvis::kinematics::Transformation& T_WC1,
@@ -56,11 +55,10 @@ namespace flame {
 
         bool update_success = false;
 
-        update_success = sensor_->update(time, img_id_,
+        update_success = sensor_->update(time, img_id,
                 pose0.cast<float>(), img_gray_undist0,
                                          pose1.cast<float>(), img_gray_undist1,
                                              is_poseframe);
-        img_id_ ++;
 //        if (!update_success) {
 //            //ROS_WARN("FlameOffline: Unsuccessful update.\n");
 //            return;

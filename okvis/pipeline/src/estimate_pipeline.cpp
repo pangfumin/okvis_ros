@@ -234,15 +234,15 @@ namespace okvis {
         okvis::kinematics::Transformation T_WC1 = T_WS * (*parameters_.nCameraSystem.T_SC(1));
 
         // todo(pang): give dense frame pose
-        meshEstimatorPtr_->processFrame(multiFrame->timestamp().toSec(),
+        meshEstimatorPtr_->processFrame(multiFrame->timestamp().toSec(), static_cast<int32_t >(multiFrame->id()),
                                         T_WC0, multiFrame->image(0),
                                         T_WC1, multiFrame->image(1), asKeyframe);
 
-        Sophus::SE3d pose0(T_WC0.C(), T_WC0.r());
-        Sophus::SE3d pose1(T_WC1.C(), T_WC1.r());
-        multiFrame->getDenseFrame(0)->pose = pose0.cast<float>();
-        multiFrame->getDenseFrame(1)->pose = pose1.cast<float>();
-        meshEstimatorPtr_->estimateMesh(multiFrame);
+//        Sophus::SE3d pose0(T_WC0.C(), T_WC0.r());
+//        Sophus::SE3d pose1(T_WC1.C(), T_WC1.r());
+//        multiFrame->getDenseFrame(0)->pose = pose0.cast<float>();
+//        multiFrame->getDenseFrame(1)->pose = pose1.cast<float>();
+//        meshEstimatorPtr_->estimateMesh(multiFrame);
 
 
         /***************  optimization and marginalisation ***************/
