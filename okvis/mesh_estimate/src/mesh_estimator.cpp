@@ -15,7 +15,8 @@ namespace flame {
                                  const Vector4f& distort1,
                                  const Params& parameters):
             params_(parameters),
-            poseframe_subsample_factor_(6) {
+            poseframe_subsample_factor_(6),
+            estimator_(estimator){
 
         cv::eigen2cv(K0, K0cv_);
         cv::eigen2cv(distort0, D0cv_);
@@ -76,4 +77,10 @@ namespace flame {
 
     }
 
+
+    void MeshEstimator::estimateMesh(okvis::MultiFramePtr& multiFramePtr) {
+
+
+
+    }
 }

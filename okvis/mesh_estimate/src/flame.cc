@@ -671,52 +671,6 @@ void Flame::detectFeatures(DetectionData& data) {
   }
 }
 
-utils::Frame::ConstPtr Flame::getPoseFrame(const Params& params,
-                                           const Matrix3f& K,
-                                           const Matrix3f& Kinv,
-                                           const FrameIDToFrame& pfs,
-                                           const utils::Frame& fnew,
-                                           int max_pfs,
-                                           utils::StatsTracker* stats) {
-  stats->tick("poseframe");
-
-  // Pick past pf to use for comparison.
-  float best_score = std::numeric_limits<float>::lowest();
-  utils::Frame::Ptr pf = nullptr;
-  int best_idx = 0;
-
-  // We walk backwards through the pfs (i.e. backwarfs in time), considering a
-  // maximum of max_pfs and take the one with the best score.
-  auto pfi = pfs.crbegin(); // Const reverse iterator.
-  auto rend = pfs.crend();
-  for (int ii = 0; ii < max_pfs; ++ii) {
-    if (pfi->second->id != fnew.id) {
-      float score =
-          utils::KeyFrameSelector::score(fnew.img[0].cols, fnew.img[0].rows,
-                                         K, Kinv,
-                                         pfi->second->pose.inverse() * fnew.pose,
-                                         1.0f, 50.0f);
-      if (score > best_score) {
-        best_score = score;
-        pf = pfi->second;
-        best_idx = ii;
-      }
-    }
-
-    pfi++;
-    if (pfi == rend) {
-      break;
-    }
-  }
-
-  stats->tock("poseframe");
-  if (!params.debug_quiet && params.debug_print_timing_poseframe) {
-    printf("Flame/poseframe = %f ms, picked %i/%i\n",
-           stats->timings("poseframe"), best_idx, max_pfs);
-  }
-
-  return pf;
-}
 
 void Flame::detectFeatures(const Params& params,
                            const Matrix3f& K,

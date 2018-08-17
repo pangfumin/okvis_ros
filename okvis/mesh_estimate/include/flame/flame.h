@@ -157,15 +157,7 @@ class Flame final {
 
 
 
-  /**
-   * @brief Prune poseframes.
-   *
-   * Features defined relative to a removed poseframe will be transferred to the
-   * latest poseframe.
-   *
-   * @param[in] pfs_to_keep IDs of the poseframes to keep.
-   */
-  void prunePoseFrames(const std::vector<uint32_t>& pfs_to_keep);
+
 
   /**
    * @brief Clear everything.
@@ -301,20 +293,7 @@ class Flame final {
 
  private:
 
-    void detectFeatures(DetectionData& data);
-
-    // Synchronizes graph with updated features.
-  void graphSyncLoop();
-
-  // Get the best poseframe for frame fnew.
-  static utils::Frame::ConstPtr getPoseFrame(const Params& params,
-                                             const Matrix3f& K,
-                                             const Matrix3f& Kinv,
-                                             const FrameIDToFrame& pfs,
-                                             const utils::Frame& fnew,
-                                             int max_pfs,
-                                             utils::StatsTracker* stats);
-
+  void detectFeatures(DetectionData& data);
   static void detectFeatures(const Params& params,
                              const Matrix3f& K,
                              const Matrix3f& Kinv,

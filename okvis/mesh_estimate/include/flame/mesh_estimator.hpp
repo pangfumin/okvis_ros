@@ -3,7 +3,7 @@
 
 #include "flame/flame.h"
 #include <okvis/kinematics/Transformation.hpp>
-
+#include <okvis/MultiFrame.hpp>
 namespace okvis {
     class Estimator;
 }
@@ -29,6 +29,9 @@ namespace flame {
                           const cv::Mat& img_gray1, bool isKeyframe);
 
 
+        void estimateMesh(okvis::MultiFramePtr& multiFramePtr);
+
+
         std::shared_ptr<flame::Flame> sensor_;
     private:
 
@@ -38,6 +41,7 @@ namespace flame {
         cv::Mat K1cv_, D1cv_;
         flame::Params params_;
         int poseframe_subsample_factor_;
+        okvis::Estimator* estimator_;
     };
 }
 #endif
