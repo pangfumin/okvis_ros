@@ -110,7 +110,7 @@ struct Params {
   float scene_color_scale = 1.0f;
 
   // Debugging parameters.
-  bool debug_quiet = true;
+  bool debug_quiet = false;
   bool debug_print_timing_update = true;
   bool debug_print_timing_update_locking = true;
   bool debug_print_timing_frame_creation = true;
@@ -132,7 +132,7 @@ struct Params {
   bool debug_print_timing_edge_length_filter = true;
   bool debug_print_timing_idepth_triangle_filter = true;
   bool debug_print_verbose_errors = false;
-  bool debug_draw_detections = false;
+  bool debug_draw_detections = true;
   bool debug_draw_wireframe = true;
   bool debug_draw_features = true;
   bool debug_draw_matches = false;

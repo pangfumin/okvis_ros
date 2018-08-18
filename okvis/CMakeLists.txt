@@ -20,7 +20,7 @@ option (BUILD_APPS
         "Builds a demo app (which requires boost)" ON)
 
 option (BUILD_TESTS
-        "Builds all gtests" ON)
+        "Builds all gtests" OFF)
 SET(N_CORES 4 CACHE STRING "Using N number of cores for parallel build")
 
 # Offer the user the choice of overriding the installation directories
@@ -91,22 +91,6 @@ link_directories(${CMAKE_BINARY_DIR}/lib)
 find_package( Eigen REQUIRED )
 include_directories(${EIGEN_INCLUDE_DIR}) 
 
-# libvisensor
-find_package(VISensor)
-
-if(VISENSORDRIVER_FOUND)
-  add_definitions(-DHAVE_LIBVISENSOR)
-  set(LIBVISENSOR TRUE)
-  message(STATUS "Found libvisensor. Setting HAVE_LIBVISENSOR flag.")
-  include_directories(${VISensorDriver_INCLUDE_DIR})
-  # install find script
-  install(FILES ${PROJECT_SOURCE_DIR}/cmake/FindVISensor.cmake
-    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/CMake)
-else()
-  message(STATUS "libvisensor not found")
-endif()
-
-#set(OpenCV_DIR /home/pang/software/opencv2413_install/share/OpenCV)
 
 # glog
 find_package(Glog REQUIRED)

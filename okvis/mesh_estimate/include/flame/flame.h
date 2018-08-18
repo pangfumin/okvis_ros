@@ -78,11 +78,10 @@ using FrameIDToFrame = std::map<uint32_t, utils::Frame::Ptr>;
  */
 struct DetectionData {
   explicit DetectionData(int num_lvls = 1):
-      ref(num_lvls), prev(num_lvls), cmp(num_lvls), ref_xy() {}
+      ref(num_lvls), prev(num_lvls),  ref_xy() {}
 
   utils::Frame ref; // Reference frame.
   utils::Frame prev; // Previous frame.
-  utils::Frame cmp; // Comparison frame.
   std::vector<Point2f> ref_xy; // Current feature locations in ref frame.
 };
 

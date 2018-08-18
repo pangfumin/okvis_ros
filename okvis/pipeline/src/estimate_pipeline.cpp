@@ -203,17 +203,13 @@ namespace okvis {
 
             // for brisk feature
             frontend_.detectAndDescribe(i, multiFrame, T_WC, nullptr);
-
-            // todo(pang): for dense frame
-            cv::Mat undistort = multiFrame->geometry(i)->undistortImage(multiFrame->image(i));
-            multiFrame->getDenseFrame(i) =
-                    flame::utils::Frame::create(undistort,1, border);
         }
 
-//        cv::Mat grad0 = multiFrame->getDenseFrame(0)->img[0];
-//        cv::imshow("grad", grad0);
+
 
         /**************************  addState and match  ******************************/
+
+
 
         bool asKeyframe = false;
         if (estimator_.addStates(multiFrame, imuData, asKeyframe)) {
@@ -234,15 +230,12 @@ namespace okvis {
         okvis::kinematics::Transformation T_WC1 = T_WS * (*parameters_.nCameraSystem.T_SC(1));
 
         // todo(pang): give dense frame pose
-        meshEstimatorPtr_->processFrame(multiFrame->timestamp().toSec(), static_cast<int32_t >(multiFrame->id()),
-                                        T_WC0, multiFrame->image(0),
-                                        T_WC1, multiFrame->image(1), asKeyframe);
+//        meshEstimatorPtr_->processFrame(multiFrame->timestamp().toSec(), static_cast<int32_t >(multiFrame->id()),
+//                                        T_WC0, multiFrame->image(0),
+//                                        T_WC1, multiFrame->image(1), asKeyframe);
 
-//        Sophus::SE3d pose0(T_WC0.C(), T_WC0.r());
-//        Sophus::SE3d pose1(T_WC1.C(), T_WC1.r());
-//        multiFrame->getDenseFrame(0)->pose = pose0.cast<float>();
-//        multiFrame->getDenseFrame(1)->pose = pose1.cast<float>();
-//        meshEstimatorPtr_->estimateMesh(multiFrame);
+
+        meshEstimatorPtr_->estimateMesh();
 
 
         /***************  optimization and marginalisation ***************/
