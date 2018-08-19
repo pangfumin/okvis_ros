@@ -213,7 +213,7 @@ void VioKeyframeWindowMatchingAlgorithm<CAMERA_GEOMETRY_T>::doSetup() {
       keypointAStdDev = 0.8 * keypointAStdDev / 12.0;
       raySigmasA_[k] = sqrt(sqrt(2)) * keypointAStdDev / fA_;  // (sqrt(MeasurementCovariance.norm()) / _fA)
     }
-  } else {
+  } else {    // matchingType_ == Match2D2D
     for (size_t k = 0; k < numA; ++k) {
       double keypointAStdDev;
       frameA_->getKeypointSize(camIdA_, k, keypointAStdDev);

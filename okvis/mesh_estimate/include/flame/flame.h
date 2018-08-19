@@ -24,6 +24,7 @@
 
 #include <vector>
 #include <deque>
+#include <queue>
 #include <memory>
 #include <map>
 #include <unordered_map>
@@ -509,9 +510,10 @@ class Flame final {
   Image1f photo_error_; // Photometric error.
 
   // Raw depth estimates.
-  uint32_t feat_count_; // Running count of features. Used to create feature ID.
   std::vector<FeatureWithIDepth> feats_; // Raw features.
   std::vector<FeatureWithIDepth> feats_in_curr_; // Feature projected into current frame.
+
+    std::map<uint64_t, std::queue<uint64_t>> feat_id_to_observations_map_;
 
   // The main optimization graph.
   Graph graph_;

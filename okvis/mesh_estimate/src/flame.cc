@@ -37,6 +37,7 @@
 #include "flame/utils/image_utils.h"
 
 #include <okvis/Estimator.hpp>
+#include <okvis/IdProvider.hpp>
 namespace flame {
 
 namespace dgraph = optimizers::nltgv2_l1_graph_regularizer;
@@ -64,7 +65,6 @@ Flame::Flame(okvis::Estimator* estimator, int width, int height,
     curr_pf_(nullptr),
     new_feats_(),
     photo_error_(height, width, std::numeric_limits<float>::quiet_NaN()),
-    feat_count_(0),
     feats_(),
     feats_in_curr_(),
     graph_(),
@@ -152,7 +152,6 @@ bool Flame::update(double time, uint32_t img_id,
   if (is_poseframe) {
     // Add to poseframes.
     pfs_[fnew_->id] = fnew_;
-
     curr_pf_ = fnew_;
   }
 
@@ -194,8 +193,6 @@ bool Flame::update(double time, uint32_t img_id,
 
     detectFeatures(data);
   }
-
-
 
   /*==================== Add new features ====================*/
   if ((feats_.size() == 0) && (new_feats_.size() == 0)) {
@@ -515,7 +512,7 @@ void Flame::detectFeatures(DetectionData& data) {
   // Add new features to list.
   for (int ii = 0; ii < new_feats.size(); ++ii) {
     FeatureWithIDepth newf;
-    newf.id = feat_count_++;
+    newf.id = okvis::IdProvider::instance::newId();
     newf.frame_id = data.ref.id;
     newf.xy = new_feats[ii];
     newf.idepth_var = params_.idepth_var_init;
@@ -531,6 +528,9 @@ void Flame::detectFeatures(DetectionData& data) {
     }
 
     new_feats_.push_back(newf);
+
+    // todo(pang): add into estimator observation
+
   }
 }
 
@@ -1416,7 +1416,7 @@ bool Flame::updateFeatureIDepths(const Params& params,
 
   //cv::imshow("curr_pf", colorCurr_pf);
    cv::imshow("fnew", 0.5*colorNew_left + 0.5*colorNew_right);
-  cv::imshow("fnew_right", colorNew_right);
+  //cv::imshow("fnew_right", colorNew_right);
   cv::waitKey(2);
 
 
