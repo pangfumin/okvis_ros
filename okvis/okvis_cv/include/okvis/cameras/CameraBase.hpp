@@ -337,6 +337,7 @@ class CameraBase
   virtual const std::string distortionType() const = 0;
 
   virtual cv::Mat undistortImage(const cv::Mat&  distort) const = 0;
+  virtual cv::Point2f distort(const cv::Point2f&  undistortPoint, cv::Point2f* bearing) const = 0;
 
  protected:
 

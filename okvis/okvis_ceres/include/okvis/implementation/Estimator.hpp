@@ -61,7 +61,10 @@ template<class GEOMETRY_TYPE>
   multiFramePtr->getKeypoint(camIdx, keypointIdx, measurement);
   Eigen::Matrix2d information = Eigen::Matrix2d::Identity();
   double size = 1.0;
-  multiFramePtr->getKeypointSize(camIdx, keypointIdx, size);
+  // For matchable feature, give a reasonable information matrix.
+  if (multiFramePtr->getFeatureType(camIdx, keypointIdx) == Frame::MATCHABLE)
+    multiFramePtr->getKeypointSize(camIdx, keypointIdx, size);
+
   information *= 64.0 / (size * size);
 
   // create error term

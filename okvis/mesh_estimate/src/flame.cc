@@ -118,7 +118,7 @@ Flame::~Flame() {
   return;
 }
 
-bool Flame::update(double time, uint32_t img_id,
+bool Flame::update(double time,
                    const okvis::kinematics::Transformation & T_new0,
                    const Image1b& img_new0,
                    const okvis::kinematics::Transformation & T_new1,
@@ -143,6 +143,7 @@ bool Flame::update(double time, uint32_t img_id,
 
   // Create frame from new image.
   int border = params_.fparams.win_size;
+  uint64_t img_id = estimator_->currentFrameId();
   fnew_ = utils::Frame::create(T_new0, img_new0, img_id, 1, border);
   fnew_right_ = utils::Frame::create(T_new1, img_new1, img_id, 1, border);
 
@@ -208,7 +209,7 @@ bool Flame::update(double time, uint32_t img_id,
   // Update depth estimates.
   bool idepth_success = updateFeatureIDepths(params_, K0_, K0inv_,
           K1_, K1inv_,
-           pfs_, *fnew_, *fnew_right_,
+          estimator_,  pfs_, *fnew_, *fnew_right_,
                                              *curr_pf_, &feats_, &stats_,
                                              &debug_img_matches_);
 
@@ -526,11 +527,7 @@ void Flame::detectFeatures(DetectionData& data) {
     if (!std::isnan(data.ref.idepthmap[0](y, x))) {
       newf.idepth_mu = data.ref.idepthmap[0](y, x);
     }
-
     new_feats_.push_back(newf);
-
-    // todo(pang): add into estimator observation
-
   }
 }
 
@@ -997,6 +994,7 @@ bool Flame::updateFeatureIDepths(const Params& params,
                                  const Matrix3f& K0inv,
                                  const Matrix3f& K1,
                                  const Matrix3f& K1inv,
+                                 okvis::Estimator* estimator,
                                  const FrameIDToFrame& pfs,
                                  const utils::Frame& fnew,
                                  const utils::Frame& fnew_right,
@@ -1035,7 +1033,7 @@ bool Flame::updateFeatureIDepths(const Params& params,
   std::vector<std::pair<Point2f , Point2f >> flow_pairs;
 
 
-  int remove_cnt = 0;
+  int new_add_landmark = 0;
     std::vector<FeatureWithIDepth>::iterator itr = feats->begin();
     while(itr != feats->end()) {
     FeatureWithIDepth& fii = (*itr);
@@ -1045,7 +1043,6 @@ bool Flame::updateFeatureIDepths(const Params& params,
     if (!pfs.count(fii.frame_id)) {
       // remove feature whose parent frame is not in slinding window
       feats->erase(itr);
-      remove_cnt++;
       continue;
     }
 
@@ -1355,7 +1352,14 @@ bool Flame::updateFeatureIDepths(const Params& params,
 
 
     // todo(pang): add observation into estimator
+      if (!fii.is_in_estimator) {
+        // add landmark
+        bool init = initilizeLandmark(estimator, fnew, pfs,  &fii , left_flow, right_flow);
+        new_add_landmark ++;
+      } else {
+        // track landmark
 
+      }
 
 
     if (left_update_success && right_update_success) {
@@ -1366,7 +1370,7 @@ bool Flame::updateFeatureIDepths(const Params& params,
     itr++;
   }
 
-  //std::cout<< "remove: " << remove_cnt << std::endl;
+  std::cout<< "new_add_landmark: " << new_add_landmark << std::endl;
 
   // Fill in some stats.
   stats->set("num_idepth_updates", num_total_updates);
@@ -1786,6 +1790,40 @@ bool Flame::trackFeatureRight(const Params& params,
   *flow = u_cmp - offset;
 
 
+
+  return true;
+}
+
+bool Flame::initilizeLandmark(okvis::Estimator* estimator,
+                              const utils::Frame& fnew,
+                                  const FrameIDToFrame& pfs,
+                                  FeatureWithIDepth* feat,
+                                  const cv::Point2f left_flow,
+                                  const cv::Point2f right_flow) {
+  okvis::MultiFramePtr multiFramePtr = estimator->multiFrame(feat->frame_id);
+
+  OKVIS_ASSERT_TRUE_DBG(Exception, estimator->isKeyframe(feat->frame_id), "Not keyframe");
+  cv::Point2f bearing;
+  cv::Point2f distort_xy = multiFramePtr->geometry(0)->distort(feat->xy, &bearing);
+  cv::KeyPoint kp(distort_xy.x, distort_xy.y, 1.0);
+  size_t  kp_id = multiFramePtr->numTotalFeature(0);  //  next position
+  multiFramePtr->appendTrackFeature(0, kp);
+  //std::cout<< "undi: "<< feat->xy.x << " " << feat->xy.y << " " << distort_xy.x << " " << distort_xy.y << std::endl;
+  double depth = 1.0 / (double)feat->idepth_mu;
+  Eigen::Vector4d Cp_homo((double)bearing.x * depth, (double)bearing.y * depth, depth, 1.0);
+  okvis::kinematics::Transformation T_WC0 = pfs.at(feat->frame_id)->pose;
+  Eigen::Vector4d Wp_homo =  T_WC0 * Cp_homo;
+
+  uint64_t lmId = okvis::IdProvider::instance::newId();
+  multiFramePtr->setLandmarkId(0, kp_id, lmId);
+  //std::cout << "lmId: " << lmId << " " << multiFramePtr->landmarkId(0,kp_id) << std::endl;
+
+
+
+
+
+  // update
+  feat->is_in_estimator = true;
 
   return true;
 }

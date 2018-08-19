@@ -118,6 +118,8 @@ int Frame::detect()
   OKVIS_ASSERT_TRUE_DBG(Exception, detector_ != NULL,
                         "Detector not initialised!");
   detector_->detect(image_, keypoints_);
+    num_total_feature_ = keypoints_.size();
+    feature_type_.resize(num_total_feature_, MATCHABLE);
   return keypoints_.size();
 }
 
@@ -209,19 +211,26 @@ bool Frame::getCvKeypoint(size_t keypointIdx, cv::KeyPoint & keypoint) const
 // get a specific keypoint
 bool Frame::getKeypoint(size_t keypointIdx, Eigen::Vector2d & keypoint) const
 {
+    if (keypointIdx < keypoints_.size()) {
 #ifndef NDEBUG
-  OKVIS_ASSERT_TRUE(
-      Exception,
-      keypointIdx < keypoints_.size(),
-      "keypointIdx " << keypointIdx << "out of range: keypoints has size "
-          << keypoints_.size());
-  keypoint = Eigen::Vector2d(keypoints_[keypointIdx].pt.x,
-                             keypoints_[keypointIdx].pt.y);
-  return keypointIdx < keypoints_.size();
+        OKVIS_ASSERT_TRUE(
+            Exception,
+            keypointIdx < keypoints_.size(),
+            "keypointIdx " << keypointIdx << "out of range: keypoints has size "
+                << keypoints_.size());
+        keypoint = Eigen::Vector2d(keypoints_[keypointIdx].pt.x,
+                                   keypoints_[keypointIdx].pt.y);
+        return keypointIdx < keypoints_.size();
 #else
-  keypoint = Eigen::Vector2d(keypoints_[keypointIdx].pt.x, keypoints_[keypointIdx].pt.y);
-  return true;
+        keypoint = Eigen::Vector2d(keypoints_[keypointIdx].pt.x, keypoints_[keypointIdx].pt.y);
+        return true;
 #endif
+    } else if (keypointIdx < num_total_feature_) {
+        keypoint = Eigen::Vector2d(track_features_.at(keypointIdx).pt.x, track_features_.at(keypointIdx).pt.y);
+        return true;
+    } else {
+        return false;
+    }
 }
 
 // get the size of a specific keypoint
@@ -260,33 +269,44 @@ const unsigned char * Frame::keypointDescriptor(size_t keypointIdx)
 // Set the landmark ID
 bool Frame::setLandmarkId(size_t keypointIdx, uint64_t landmarkId)
 {
+  if (keypointIdx < keypoints_.size()) {
 #ifndef NDEBUG
-  OKVIS_ASSERT_TRUE(
-      Exception,
-      keypointIdx < landmarkIds_.size(),
-      "keypointIdx " << keypointIdx << "out of range: landmarkIds_ has size "
-          << landmarkIds_.size());
-  landmarkIds_[keypointIdx] = landmarkId;
-  return keypointIdx < keypoints_.size();
+    OKVIS_ASSERT_TRUE(
+            Exception,
+            keypointIdx < landmarkIds_.size(),
+            "keypointIdx " << keypointIdx << "out of range: landmarkIds_ has size "
+                           << landmarkIds_.size());
+    landmarkIds_[keypointIdx] = landmarkId;
+    return keypointIdx < keypoints_.size();
 #else
-  landmarkIds_[keypointIdx] = landmarkId;
-  return true;
+    landmarkIds_[keypointIdx] = landmarkId;
+    return true;
 #endif
+  } else if (keypointIdx < num_total_feature_) {
+     track_landmark_[keypointIdx] = landmarkId;
+    return true;
+  } else {
+    return false;
+  }
 }
 
 // Access the landmark ID
 uint64_t Frame::landmarkId(size_t keypointIdx) const
 {
+  if (keypointIdx < keypoints_.size()) {
 #ifndef NDEBUG
-  OKVIS_ASSERT_TRUE(
-      Exception,
-      keypointIdx < landmarkIds_.size(),
-      "keypointIdx " << keypointIdx << "out of range: landmarkIds has size "
-          << landmarkIds_.size());
-  return landmarkIds_[keypointIdx];
+    OKVIS_ASSERT_TRUE(
+            Exception,
+            keypointIdx < landmarkIds_.size(),
+            "keypointIdx " << keypointIdx << "out of range: landmarkIds has size "
+                           << landmarkIds_.size());
+    return landmarkIds_[keypointIdx];
 #else
-  return landmarkIds_[keypointIdx];
+    return landmarkIds_[keypointIdx];
 #endif
+  } else if (keypointIdx < num_total_feature_) {
+    return track_landmark_.at(keypointIdx);
+  }
 }
 
 // provide keypoints externally

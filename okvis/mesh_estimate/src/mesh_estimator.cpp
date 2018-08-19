@@ -34,12 +34,16 @@ namespace flame {
 
     }
 
-    void MeshEstimator::processFrame( const double time, int32_t img_id,
+    void MeshEstimator::processFrame( const double time,
                       const okvis::kinematics::Transformation& T_WC0,
                                       const cv::Mat& img_gray0,
                                       const okvis::kinematics::Transformation& T_WC1,
                                       const cv::Mat& img_gray1,bool isKeyframe) {
 //
+        /*==================== Update pose  ====================*/
+        sensor_->updateKeyframePose();
+
+
         /*==================== Process image ====================*/
         cv::Mat img_gray_undist0;
         cv::undistort(img_gray0, img_gray_undist0, K0cv_, D0cv_);
@@ -49,7 +53,7 @@ namespace flame {
 
         bool is_poseframe = isKeyframe;
         bool update_success = false;
-        update_success = sensor_->update(time, img_id,
+        update_success = sensor_->update(time,
                 T_WC0, img_gray_undist0,
                                         T_WC1, img_gray_undist1,
                                              is_poseframe);
@@ -58,7 +62,7 @@ namespace flame {
 //            return;
 //        }
 
-        sensor_->updateKeyframePose();
+
 
         Image3b wireImage = sensor_->getDebugImageWireframe();
 //        Image3b wireImage = sensor_->getDebugImageFeatures();

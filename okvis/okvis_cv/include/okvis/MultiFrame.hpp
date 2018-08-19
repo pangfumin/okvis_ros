@@ -242,7 +242,18 @@ class MultiFrame
   /// \return The number of keypoints.
   inline size_t numKeypoints(size_t cameraIdx) const;
 
-  /// @}
+    inline size_t appendTrackFeature(size_t cameraIdx, cv::KeyPoint kp) {
+        return frames_[cameraIdx].appendTrackFeature(kp);
+    }
+    inline uint getFeatureType(size_t cameraIdx, size_t keypointIdx) const {
+        return frames_[cameraIdx].getFeatureType(keypointIdx);
+    }
+    inline size_t numTotalFeature(size_t cameraIdx) const {
+      return frames_[cameraIdx].numTotalFeature();
+    }
+
+
+      /// @}
 
   /// \brief Get the total number of keypoints in all frames.
   /// \return The total number of keypoints.

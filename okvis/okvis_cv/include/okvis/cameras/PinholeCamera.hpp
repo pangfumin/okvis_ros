@@ -316,7 +316,19 @@ class PinholeCamera : public CameraBase
     return undistort;
   }
 
- protected:
+  inline cv::Point2f distort(const cv::Point2f&  undistortPoint, cv::Point2f* bearing) const  {
+    cv::Point2d _bearing (((double)undistortPoint.x - cu_) * one_over_fu_,
+                         ((double)undistortPoint.y - cv_) * one_over_fv_);
+
+    *bearing = _bearing;
+    Eigen::Vector3d eigen_bearing(_bearing.x, _bearing.y, 1.0);
+    Eigen::Vector2d eigen_distort;
+
+    project(eigen_bearing, &eigen_distort);
+    return cv::Point2f((float)eigen_distort[0], (float)eigen_distort[1]);
+  }
+
+protected:
 
   /// \brief No default constructor.
   PinholeCamera() = delete;

@@ -49,6 +49,8 @@
 #include <flame/utils/stats_tracker.h>
 #include "flame/utils/delaunay.h"
 
+#include <okvis/assert_macros.hpp>
+
 
 namespace okvis {
     class Estimator;
@@ -96,6 +98,7 @@ struct FeatureWithIDepth {
   float idepth_mu = 0.0f;
   float idepth_var = 0.0f;
   bool valid = false;
+  bool is_in_estimator = false;
   uint32_t num_updates = 0;
   uint32_t num_dropouts = 0;
   stereo::inverse_depth_filter::Status search_status =
@@ -115,6 +118,7 @@ struct SyncData {
  */
 class Flame final {
  public:
+    OKVIS_DEFINE_EXCEPTION(Exception,std::runtime_error)
   /**
    * @brief Constructor.
    *
@@ -147,7 +151,7 @@ class Flame final {
    * @param[in] idepths_true True inverse depths (for debugging).
    * @return True if update successful. Outputs are only valid if returns True.
    */
-  bool update(double time, uint32_t img_id,
+  bool update(double time,
               const okvis::kinematics::Transformation & T_new0,
               const Image1b& img_new0,
               const okvis::kinematics::Transformation & T_new1,
@@ -311,6 +315,7 @@ class Flame final {
                                    const Matrix3f& K0inv,
                                    const Matrix3f& K1,
                                    const Matrix3f& K1inv,
+                                   okvis::Estimator* estimator,
                                    const FrameIDToFrame& pfs,
                                    const utils::Frame& fnew,
                                    const utils::Frame& fnew_right,
@@ -346,6 +351,13 @@ class Flame final {
                                   cv::Point2f* flow,
                                   float* residual,
                                   Image3b* debug_img);
+
+  static bool initilizeLandmark(okvis::Estimator* estimator,
+                                const utils::Frame& fnew,
+                                const FrameIDToFrame& pfs,
+                                FeatureWithIDepth* feat,
+                                const cv::Point2f left_flow,
+                                const cv::Point2f right_flow);
 
   // Project features into current frame.
   static void projectFeatures(const Params& params,

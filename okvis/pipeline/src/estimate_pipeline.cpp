@@ -196,7 +196,6 @@ namespace okvis {
                                                 multiFrame->timestamp());
         }
 
-        int border = meshParams.fparams.win_size;
         for (size_t i = 0; i < parameters_.nCameraSystem.numCameras(); i++) {
             okvis::kinematics::Transformation T_WC = T_WS
                                                      * (*parameters_.nCameraSystem.T_SC(i));
@@ -227,7 +226,7 @@ namespace okvis {
         okvis::kinematics::Transformation T_WC0 = T_WS * (*parameters_.nCameraSystem.T_SC(0));
         okvis::kinematics::Transformation T_WC1 = T_WS * (*parameters_.nCameraSystem.T_SC(1));
         // todo(pang): give dense frame pose
-        meshEstimatorPtr_->processFrame(multiFrame->timestamp().toSec(), static_cast<int32_t >(multiFrame->id()),
+        meshEstimatorPtr_->processFrame(multiFrame->timestamp().toSec(),
                                         T_WC0, multiFrame->image(0),
                                         T_WC1, multiFrame->image(1), asKeyframe);
 

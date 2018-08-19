@@ -68,6 +68,11 @@ class Frame
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   OKVIS_DEFINE_EXCEPTION(Exception, std::runtime_error)
 
+  enum FEAT_TYPE : uint {
+      MATCHABLE = 0,
+      TRACKABLE
+  };
+
   /// \brief a default constructor
   inline Frame()
   {
@@ -188,6 +193,21 @@ class Frame
   /// \return The number of keypoints.
   inline size_t numKeypoints() const;
 
+
+  inline size_t appendTrackFeature(cv::KeyPoint kp) {
+    track_features_[num_total_feature_] = kp;
+    feature_type_.push_back(TRACKABLE);
+    num_total_feature_ ++;
+    return num_total_feature_;
+  }
+  inline uint getFeatureType(size_t keypointIdx) const {
+    return feature_type_[keypointIdx];
+  }
+
+  inline size_t numTotalFeature() const {
+    return num_total_feature_;
+  }
+
   inline std::shared_ptr<flame::utils::Frame>& getDenseFrame() {
       return dense_frame_;
   }
@@ -201,6 +221,10 @@ class Frame
   cv::Mat descriptors_;  ///< we store the descriptors using OpenCV's matrices
   std::vector<uint64_t> landmarkIds_;  ///< landmark Id, if associated -- 0 otherwise
 
+  std::map<size_t ,cv::KeyPoint> track_features_;
+  std::map<size_t ,uint64_t> track_landmark_;
+  std::vector<uint> feature_type_;
+  size_t num_total_feature_;
     std::shared_ptr<flame::utils::Frame> dense_frame_;  ///< used for mesh estimate
 };
 

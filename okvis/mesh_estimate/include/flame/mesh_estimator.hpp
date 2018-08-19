@@ -22,7 +22,7 @@ namespace flame {
                       const Vector4f& distort1,
                       const Params& parameters = Params());
 
-        void processFrame(const double time, int32_t img_id,
+        void processFrame(const double time,
                           const okvis::kinematics::Transformation& T_WC0,
                           const cv::Mat& img_gray0,
                           const okvis::kinematics::Transformation& T_WC1,
