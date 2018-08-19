@@ -64,7 +64,7 @@ typedef brisk::BriskFeatureDetector BriskFeatureDetector;
 
 namespace brisk {
 // Deprecated names.
-typedef brisk::BruteForceMatcher BruteForceMatcherSse;
+//typedef brisk::BruteForceMatcher BruteForceMatcherSse;
 typedef brisk::Hamming HammingSse;
 #ifndef __ARM_NEON__
 // Alternative (Harris-Scale-Space) Detector:

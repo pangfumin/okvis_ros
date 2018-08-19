@@ -27,8 +27,7 @@ add_library(${PROJECT_NAME}
 		src/brisk/brisk-feature-detector.cc
 		src/brisk/brisk-layer.cc
 		src/brisk/brisk-scale-space.cc
-		src/brisk/brute-force-matcher.cc
-		src/brisk/harris-feature-detector.cc
+        src/brisk/harris-feature-detector.cc
 		src/brisk/harris-score-calculator.cc
 		src/brisk/harris-score-calculator-float.cc
 		src/brisk/harris-scores.cc
