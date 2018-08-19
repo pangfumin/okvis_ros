@@ -342,6 +342,11 @@ class Estimator : public VioBackendInterface
     return statesMap_.at(frameId).isKeyframe;
   }
 
+
+  bool isInSlidingWindow(uint64_t frameId) const {
+    return statesMap_.count(frameId) > 0;
+  }
+
   /**
    * @brief Checks if a particular frame is still in the IMU window.
    * @param[in] frameId ID of frame to check.

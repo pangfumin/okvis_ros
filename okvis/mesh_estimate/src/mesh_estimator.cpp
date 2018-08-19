@@ -63,6 +63,9 @@ namespace flame {
 //            //ROS_WARN("FlameOffline: Unsuccessful update.\n");
 //            return;
 //        }
+
+        sensor_->updateKeyframePose();
+
         Image3b wireImage = sensor_->getDebugImageWireframe();
 //        Image3b wireImage = sensor_->getDebugImageFeatures();
         cv::imshow("wireImage", wireImage);

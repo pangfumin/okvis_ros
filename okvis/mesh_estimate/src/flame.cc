@@ -180,10 +180,6 @@ bool Flame::update(double time, uint32_t img_id,
 
     data.prev = *fprev_;
 
-    int num_pfs = pfs_.size();
-
-
-
     // Project features into current frame.
     if (feats_.size() > 0) {
       projectFeatures(params_, K0_, K0inv_, pfs_, *curr_pf_, &feats_, &feats_in_curr_,
@@ -215,7 +211,7 @@ bool Flame::update(double time, uint32_t img_id,
   // Update depth estimates.
   bool idepth_success = updateFeatureIDepths(params_, K0_, K0inv_,
           K1_, K1inv_,
-          pfs_, *fnew_, *fnew_right_,
+           pfs_, *fnew_, *fnew_right_,
                                              *curr_pf_, &feats_, &stats_,
                                              &debug_img_matches_);
 
@@ -480,6 +476,29 @@ bool Flame::update(double time, uint32_t img_id,
   }
 
   return true;
+}
+
+void Flame::updateKeyframePose() {
+  int inSlidngWindow = 0;
+  int before = pfs_.size();
+    for (auto it = pfs_.cbegin(); it != pfs_.cend() ; /* no increment */)
+    {
+        uint64_t kf_id = it->first;
+        if(estimator_->isInSlidingWindow(kf_id)) {
+            okvis::kinematics::Transformation T_WS, T_WC0;
+            okvis::MultiFramePtr multiFramePtr = estimator_->multiFrame(kf_id);
+            estimator_->get_T_WS(kf_id, T_WS);
+            T_WC0 = T_WS * (* multiFramePtr->T_SC(0));
+            it->second->pose = T_WC0;
+            inSlidngWindow ++;
+            ++it;
+        } else {
+            pfs_.erase(it++);
+        }
+
+    }
+
+  //std::cout<< "In slinding window: " << inSlidngWindow << "/" << before << std::endl;
 }
 
 void Flame::detectFeatures(DetectionData& data) {
@@ -1015,9 +1034,21 @@ bool Flame::updateFeatureIDepths(const Params& params,
 
   std::vector<std::pair<Point2f , Point2f >> flow_pairs;
 
-#pragma omp parallel for num_threads(params.omp_num_threads) schedule(static, params.omp_chunk_size) // NOLINT
-  for (int ii = 0; ii < feats->size(); ++ii) {
-    FeatureWithIDepth& fii = (*feats)[ii];
+
+  int remove_cnt = 0;
+    std::vector<FeatureWithIDepth>::iterator itr = feats->begin();
+    while(itr != feats->end()) {
+    FeatureWithIDepth& fii = (*itr);
+
+    // remove out-date
+    // todo(pang): migrate these out date feature into sliding window
+    if (!pfs.count(fii.frame_id)) {
+      // remove feature whose parent frame is not in slinding window
+      feats->erase(itr);
+      remove_cnt++;
+      continue;
+    }
+
 
     if ( fii.frame_id == curr_pf.id) {
       cv::KeyPoint kp;
@@ -1243,7 +1274,10 @@ bool Flame::updateFeatureIDepths(const Params& params,
    *  Update Using Right Image
    */
 
-    if (! params.filte_with_stereo_image) continue;
+    if (! params.filte_with_stereo_image) {
+      itr++;
+      continue;
+    }
 
     stereo::EpipolarGeometry<float> epigeo_right(K0, K0inv, K1, K1inv);
     // Load geometry.
@@ -1264,6 +1298,7 @@ bool Flame::updateFeatureIDepths(const Params& params,
     if (track_success) {
 
     } else {
+      itr++;
       continue;
     }
 
@@ -1284,6 +1319,7 @@ bool Flame::updateFeatureIDepths(const Params& params,
     bool sense_success = model.idepth(fii.xy, right_flow, &mu_meas_right, &var_meas_right);
 
     if (!sense_success) {
+      itr++;
       continue;
     }
 
@@ -1297,6 +1333,7 @@ bool Flame::updateFeatureIDepths(const Params& params,
                                                  params.outlier_sigma_thresh);
 
     if (!fuse_success) {
+      itr++;
       continue;
     }
 
@@ -1325,7 +1362,11 @@ bool Flame::updateFeatureIDepths(const Params& params,
       std::pair<Point2f , Point2f > flow_pair(left_flow, right_flow);
       flow_pairs.push_back(flow_pair);
     }
+
+    itr++;
   }
+
+  //std::cout<< "remove: " << remove_cnt << std::endl;
 
   // Fill in some stats.
   stats->set("num_idepth_updates", num_total_updates);

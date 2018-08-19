@@ -71,18 +71,17 @@ using VtxHandleToIdx = std::unordered_map<VertexHandle, uint32_t>;
 
 // Needs to be an ordered map so that we can itereate in frame_id order in
 // getPoseFrame.
-using FrameIDToFrame = std::map<uint32_t, utils::Frame::Ptr>;
+using FrameIDToFrame = std::map<uint64_t, utils::Frame::Ptr>;
 
 /**
  * @brief Struct to hold data needed for feature detection.
  */
 struct DetectionData {
   explicit DetectionData(int num_lvls = 1):
-      ref(num_lvls), prev(num_lvls), cmp(num_lvls), ref_xy() {}
+      ref(num_lvls), prev(num_lvls),  ref_xy() {}
 
   utils::Frame ref; // Reference frame.
   utils::Frame prev; // Previous frame.
-  utils::Frame cmp; // Comparison frame.
   std::vector<Point2f> ref_xy; // Current feature locations in ref frame.
 };
 
@@ -90,8 +89,8 @@ struct DetectionData {
  * @brief Struct to hold feature data.
  */
 struct FeatureWithIDepth {
-  uint32_t id = 0;
-  uint32_t frame_id = 0;
+  uint64_t id = 0;
+  uint64_t frame_id = 0;
   Point2f xy;
   float idepth_mu = 0.0f;
   float idepth_var = 0.0f;
@@ -156,8 +155,7 @@ class Flame final {
               const Image1f& idepths_true = Image1f());
 
 
-
-
+  void updateKeyframePose();
 
   /**
    * @brief Clear everything.
