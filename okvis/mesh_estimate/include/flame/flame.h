@@ -94,6 +94,7 @@ struct DetectionData {
 struct FeatureWithIDepth {
   uint64_t id = 0;
   uint64_t frame_id = 0;
+  uint64_t landmark_id = 0;
   Point2f xy;
   float idepth_mu = 0.0f;
   float idepth_var = 0.0f;
@@ -353,13 +354,15 @@ class Flame final {
                                   Image3b* debug_img);
 
   static bool initilizeLandmark(okvis::Estimator* estimator,
-                                const utils::Frame& fnew,
                                 const FrameIDToFrame& pfs,
-                                FeatureWithIDepth* feat,
-                                const cv::Point2f left_flow,
-                                const cv::Point2f right_flow);
+                                FeatureWithIDepth* feat);
+  static bool addTrackObservaton(okvis::Estimator* estimator,
+                                 const utils::Frame& fnew,
+                            const FeatureWithIDepth* feat,
+                            const size_t camIdx,
+                            const cv::Point2f& flow);
 
-  // Project features into current frame.
+    // Project features into current frame.
   static void projectFeatures(const Params& params,
                               const Matrix3f& K,
                               const Matrix3f& Kinv,

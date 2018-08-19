@@ -221,7 +221,7 @@ namespace okvis {
         if (asKeyframe)
             estimator_.setKeyframe(multiFrame->id(), asKeyframe);
 
-        std::cout<< "okvis add landmark:  " << estimator_.numLandmarks() << std::endl;
+        uint okvis_landmark = estimator_.numLandmarks();
 
         okvis::kinematics::Transformation T_WC0 = T_WS * (*parameters_.nCameraSystem.T_SC(0));
         okvis::kinematics::Transformation T_WC1 = T_WS * (*parameters_.nCameraSystem.T_SC(1));
@@ -229,6 +229,8 @@ namespace okvis {
         meshEstimatorPtr_->processFrame(multiFrame->timestamp().toSec(),
                                         T_WC0, multiFrame->image(0),
                                         T_WC1, multiFrame->image(1), asKeyframe);
+
+        std::cout<< "okvis add landmark:  " << okvis_landmark<< " " << estimator_.numLandmarks() << std::endl;
 
 
 
