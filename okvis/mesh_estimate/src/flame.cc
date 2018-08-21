@@ -1269,7 +1269,7 @@ bool Flame::updateFeatureIDepths(const Params& params,
       // todo(pang): add observation into estimator
       if (fii.is_in_estimator) {
         // add new observation
-        //addTrackObservaton(estimator,fnew,&fii,(size_t)0, left_flow);
+        addTrackObservaton(estimator,fnew,&fii,(size_t)0, left_flow);
       }
     }
 
@@ -1358,7 +1358,7 @@ bool Flame::updateFeatureIDepths(const Params& params,
 
 
     // todo(pang): add observation into estimator
-      if (!fii.is_in_estimator && fii.valid && new_add_landmark < 100 ) {
+      if (!fii.is_in_estimator /* && fii.valid && new_add_landmark < 100 */ ) {
         // add landmark
         bool init = initilizeLandmark(estimator, pfs,  &fii);
         new_add_landmark ++;
@@ -1379,7 +1379,7 @@ bool Flame::updateFeatureIDepths(const Params& params,
     itr++;
   }
 
-  std::cout<< "new_add_landmark: " << new_add_landmark << std::endl;
+  //std::cout<< "new_add_landmark: " << new_add_landmark << std::endl;
 
   // Fill in some stats.
   stats->set("num_idepth_updates", num_total_updates);
@@ -1813,6 +1813,7 @@ bool Flame::initilizeLandmark(okvis::Estimator* estimator,
   cv::Point2f distort_xy = multiFramePtr->geometry(0)->distort(feat->xy, &bearing);
   cv::KeyPoint kp(distort_xy.x, distort_xy.y, 1.0);
   size_t  kp_id = multiFramePtr->numTotalFeature(0);  //  next position
+
   multiFramePtr->appendTrackFeature(0, kp);
 
   // Get landmark position in world
@@ -1823,7 +1824,10 @@ bool Flame::initilizeLandmark(okvis::Estimator* estimator,
 
   // set in frame
   uint64_t lmId = okvis::IdProvider::instance::newId();
+
   multiFramePtr->setLandmarkId(0, kp_id, lmId);
+  //std::cout<< "init kp id: " << kp_id << " " << lmId<< " " << multiFramePtr->landmarkId(0, kp_id) << std::endl;
+
   feat->landmark_id = lmId;
 
   // add to estimator
@@ -1857,12 +1861,13 @@ bool Flame::addTrackObservaton(okvis::Estimator* estimator,
   cv::Point2f distort_xy = multiFramePtr->geometry(camIdx)->distort(flow, &bearing);
   cv::KeyPoint kp(distort_xy.x, distort_xy.y, 1.0);
   size_t  kp_id = multiFramePtr->numTotalFeature(camIdx);  //  next position
+
   multiFramePtr->appendTrackFeature(camIdx, kp);
   multiFramePtr->setLandmarkId(camIdx, kp_id, lmId);
 
   // add observation
-  estimator->addObservation<okvis::cameras::PinholeCamera<
-          okvis::cameras::RadialTangentialDistortion> >(lmId, fnew.id, camIdx ,kp_id);
+//  estimator->addObservation<okvis::cameras::PinholeCamera<
+//          okvis::cameras::RadialTangentialDistortion> >(lmId, fnew.id, camIdx ,kp_id);
 
   return true;
 }

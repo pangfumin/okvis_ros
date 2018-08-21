@@ -56,13 +56,14 @@ namespace okvis {
 /**
  * @brief This class is responsible to visualize the matching results
  */
-class VioVisualizer {
+class VioMeshVisualizer {
  public:
 
   /// @brief This struct contains the relevant data for visualizing
   struct VisualizationData {
     typedef std::shared_ptr<VisualizationData> Ptr;
     okvis::ObservationVector observations;    ///< Vector containing all the keypoint observations.
+    okvis::ObservationVector tracked_observations;    ///< Vector containing all the keypoint observations.
     std::shared_ptr<okvis::MultiFrame> currentFrames; ///< Current multiframe.
     std::shared_ptr<okvis::MultiFrame> keyFrames;     ///< Current keyframe.
     okvis::kinematics::Transformation T_WS_keyFrame;  ///< Pose of the current keyframe
@@ -74,8 +75,8 @@ class VioVisualizer {
    * @brief Constructor.
    * @param parameters Parameters and settings.
    */
-  VioVisualizer(okvis::VioParameters& parameters);
-  virtual ~VioVisualizer();
+  VioMeshVisualizer(okvis::VioParameters& parameters);
+  virtual ~VioMeshVisualizer();
 
   /**
    * @brief Initialise parameters. Called in constructor.

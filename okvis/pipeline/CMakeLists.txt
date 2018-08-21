@@ -20,9 +20,9 @@ include_directories(BEFORE ${OpenCV_INCLUDE_DIRS})
 
 add_library(${PROJECT_NAME}
   src/estimate_pipeline.cpp
-        src/VioVisualizer.cpp
+        src/VioMeshVisualizer.cpp
         include/okvis/estimate_pipeline.hpp
-        include/okvis/VioVisualizer.hpp
+        include/okvis/VioMeshVisualizer.hpp
   ../cmake/okvisConfig.hpp.in
   okvisConfig.hpp
 )

@@ -8,7 +8,7 @@
 #include <okvis/IdProvider.hpp>
 #include <flame/mesh_estimator.hpp>
 #include <flame/utils/frame.h>
-#include <okvis/VioVisualizer.hpp>
+#include <okvis/VioMeshVisualizer.hpp>
 #include <okvis/cameras/PinholeCamera.hpp>
 #include <okvis/cameras/RadialTangentialDistortion.hpp>
 
@@ -230,7 +230,7 @@ namespace okvis {
                                         T_WC0, multiFrame->image(0),
                                         T_WC1, multiFrame->image(1), asKeyframe);
 
-        std::cout<< "okvis add landmark:  " << okvis_landmark<< " " << estimator_.numLandmarks() << std::endl;
+        //std::cout<< "okvis add landmark:  " << okvis_landmark<< " " << estimator_.numLandmarks() << std::endl;
 
 
 
@@ -288,13 +288,14 @@ namespace okvis {
 
 
         /***************  Visualization ***************/
-        VioVisualizer::VisualizationData::Ptr visualizationDataPtr;
+        VioMeshVisualizer::VisualizationData::Ptr visualizationDataPtr;
 
         if (parameters_.visualization.displayImages) {
             // fill in information that requires access to estimator.
-            visualizationDataPtr = VioVisualizer::VisualizationData::Ptr(
-                    new VioVisualizer::VisualizationData());
+            visualizationDataPtr = VioMeshVisualizer::VisualizationData::Ptr(
+                    new VioMeshVisualizer::VisualizationData());
             visualizationDataPtr->observations.resize(multiFrame->numKeypoints());
+
             okvis::MapPoint landmark;
             okvis::ObservationVector::iterator it = visualizationDataPtr
                     ->observations.begin();
@@ -321,6 +322,38 @@ namespace okvis {
                     ++it;
                 }
             }
+
+            // visualize data associations from mesh estimate
+            // Just for cam0
+            size_t num_kp = multiFrame->numKeypoints(0);
+            size_t num_total = multiFrame->numTotalFeature(0);
+            std::cout<< "keypoint: "<< num_kp << " " << num_total << std::endl;
+
+            visualizationDataPtr->tracked_observations.resize(num_total - num_kp);
+            okvis::ObservationVector::iterator track_it = visualizationDataPtr
+                    ->tracked_observations.begin();
+            for (size_t track_feat_id = multiFrame->numKeypoints(0);
+                    track_feat_id < multiFrame->numTotalFeature(0); track_feat_id ++) {
+//                std::cout<< "track_feat_id: " << track_feat_id << std::endl;
+                track_it->keypointIdx = track_feat_id;
+                multiFrame->getKeypoint(0, track_feat_id, track_it->keypointMeasurement);
+                track_it->cameraIdx = 0;
+                track_it->frameId = multiFrame->id();
+                track_it->landmarkId = multiFrame->landmarkId(0, track_feat_id);
+                if (estimator_.isLandmarkAdded(it->landmarkId)) {
+                    estimator_.getLandmark(it->landmarkId, landmark);
+                    track_it->landmark_W = landmark.point;
+                    if (estimator_.isLandmarkInitialized(it->landmarkId))
+                        track_it->isInitialized = true;
+                    else
+                        track_it->isInitialized = false;
+                } else {
+                    track_it->landmark_W = Eigen::Vector4d(0, 0, 0, 0);  // set to infinity to tell visualizer that landmark is not added
+                }
+                ++track_it;
+            }
+
+
             visualizationDataPtr->keyFrames = estimator_.multiFrame(
                     estimator_.currentKeyframeId());
             estimator_.get_T_WS(estimator_.currentKeyframeId(),
@@ -329,7 +362,7 @@ namespace okvis {
             visualizationDataPtr->currentFrames = multiFrame;
 
 
-            okvis::VioVisualizer visualizer_(parameters_);
+            okvis::VioMeshVisualizer visualizer_(parameters_);
 
             //visualizer_.showDebugImages(new_data);
             std::vector<cv::Mat> out_images(parameters_.nCameraSystem.numCameras());

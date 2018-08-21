@@ -46,7 +46,7 @@
 #include <okvis/cameras/NCameraSystem.hpp>
 #include <okvis/FrameTypedefs.hpp>
 
-#include "okvis/VioVisualizer.hpp"
+#include "okvis/VioMeshVisualizer.hpp"
 
 // cameras and distortions
 #include <okvis/cameras/PinholeCamera.hpp>
@@ -57,21 +57,21 @@
 /// \brief okvis Main namespace of this package.
 namespace okvis {
 
-VioVisualizer::VioVisualizer(okvis::VioParameters& parameters)
+    VioMeshVisualizer::VioMeshVisualizer(okvis::VioParameters& parameters)
     : parameters_(parameters) {
   if (parameters.nCameraSystem.numCameras() > 0) {
     init(parameters);
   }
 }
 
-VioVisualizer::~VioVisualizer() {
+    VioMeshVisualizer::~VioMeshVisualizer() {
 }
 
-void VioVisualizer::init(okvis::VioParameters& parameters) {
+void VioMeshVisualizer::init(okvis::VioParameters& parameters) {
   parameters_ = parameters;
 }
 
-cv::Mat VioVisualizer::drawMatches(VisualizationData::Ptr& data,
+cv::Mat VioMeshVisualizer::drawMatches(VisualizationData::Ptr& data,
                                    size_t image_number) {
 
   std::shared_ptr<okvis::MultiFrame> keyframe = data->keyFrames;
@@ -107,6 +107,7 @@ cv::Mat VioVisualizer::drawMatches(VisualizationData::Ptr& data,
                       distortionType == parameters_.nCameraSystem.distortionType(i),
                       "mixed frame types are not supported yet");
   }
+
 
   for (auto it = data->observations.begin(); it != data->observations.end();
       ++it) {
@@ -198,10 +199,97 @@ cv::Mat VioVisualizer::drawMatches(VisualizationData::Ptr& data,
         color, 1,
         CV_AA);
   }
+
+
+  // visualize tracked feature
+    std::cout<< "data->tracked_observations: " << data->tracked_observations.size() << std::endl;
+    for (auto it = data->tracked_observations.begin(); it != data->tracked_observations.end();
+       ++it) {
+    if (it->cameraIdx != image_number) {
+        //std::cout<< "it->cameraIdx " << it->cameraIdx << " " << image_number << std::endl;
+        continue;
+    }
+
+
+    cv::Scalar color;
+
+    if (it->landmarkId != 0) {
+      color = cv::Scalar(255, 0, 0);  // blue
+    } else {
+      color = cv::Scalar(0, 0, 255);  // red
+    }
+
+    // draw matches to keyframe
+    keypoint = it->keypointMeasurement;
+    if (fabs(it->landmark_W[3]) > 1.0e-8) {
+      Eigen::Vector4d hPoint = it->landmark_W;
+      if (it->isInitialized) {
+        color = cv::Scalar(100, 255, 0);  // green
+      } else {
+        color = cv::Scalar(100, 255, 255);  // yellow
+      }
+      Eigen::Vector2d keyframePt;
+      bool isVisibleInKeyframe = false;
+      Eigen::Vector4d hP_C = lastKeyframeT_CW * hPoint;
+      switch (distortionType) {
+        case okvis::cameras::NCameraSystem::RadialTangential: {
+          if (frame
+                      ->geometryAs<
+                              okvis::cameras::PinholeCamera<
+                                      okvis::cameras::RadialTangentialDistortion>>(image_number)
+                      ->projectHomogeneous(hP_C, &keyframePt)
+              == okvis::cameras::CameraBase::ProjectionStatus::Successful)
+            isVisibleInKeyframe = true;
+            std::cout<< "isVisibleInKeyframe" << isVisibleInKeyframe << std::endl;
+          break;
+        }
+        case okvis::cameras::NCameraSystem::Equidistant: {
+          if (frame
+                      ->geometryAs<
+                              okvis::cameras::PinholeCamera<
+                                      okvis::cameras::EquidistantDistortion>>(image_number)
+                      ->projectHomogeneous(hP_C, &keyframePt)
+              == okvis::cameras::CameraBase::ProjectionStatus::Successful)
+            isVisibleInKeyframe = true;
+          break;
+        }
+        case okvis::cameras::NCameraSystem::RadialTangential8: {
+          if (frame
+                      ->geometryAs<
+                              okvis::cameras::PinholeCamera<
+                                      okvis::cameras::RadialTangentialDistortion8>>(
+                              image_number)->projectHomogeneous(hP_C, &keyframePt)
+              == okvis::cameras::CameraBase::ProjectionStatus::Successful)
+            isVisibleInKeyframe = true;
+          break;
+        }
+        default:
+        OKVIS_THROW(Exception, "Unsupported distortion type.")
+              break;
+      }
+      if (fabs(hP_C[3]) > 1.0e-8) {
+        if (hP_C[2] / hP_C[3] < 0.4) {
+          isVisibleInKeyframe = false;
+        }
+      }
+
+
+      if (isVisibleInKeyframe) {
+
+        // found in the keyframe. draw line
+        cv::line(outimg, cv::Point2f(keyframePt[0], keyframePt[1]),
+                 cv::Point2f(keypoint[0], keypoint[1] + rowJump), color, 1,
+                 CV_AA);
+        cv::circle(actKeyframe, cv::Point2f(keyframePt[0], keyframePt[1]),
+                   0.5 * it->keypointSize, color, 1, CV_AA);
+      }
+    }
+
+  }
   return outimg;
 }
 
-cv::Mat VioVisualizer::drawKeypoints(VisualizationData::Ptr& data,
+cv::Mat VioMeshVisualizer::drawKeypoints(VisualizationData::Ptr& data,
                                      size_t cameraIndex) {
 
   std::shared_ptr<okvis::MultiFrame> currentFrames = data->currentFrames;
@@ -230,7 +318,7 @@ cv::Mat VioVisualizer::drawKeypoints(VisualizationData::Ptr& data,
   return outimg;
 }
 
-void VioVisualizer::showDebugImages(VisualizationData::Ptr& data) {
+void VioMeshVisualizer::showDebugImages(VisualizationData::Ptr& data) {
   std::vector<cv::Mat> out_images(parameters_.nCameraSystem.numCameras());
   for (size_t i = 0; i < parameters_.nCameraSystem.numCameras(); ++i) {
     out_images[i] = drawMatches(data, i);

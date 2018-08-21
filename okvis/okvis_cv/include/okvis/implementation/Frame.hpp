@@ -118,8 +118,6 @@ int Frame::detect()
   OKVIS_ASSERT_TRUE_DBG(Exception, detector_ != NULL,
                         "Detector not initialised!");
   detector_->detect(image_, keypoints_);
-    num_total_feature_ = keypoints_.size();
-    feature_type_.resize(num_total_feature_, MATCHABLE);
   return keypoints_.size();
 }
 
@@ -154,6 +152,8 @@ int Frame::describe(const Eigen::Vector3d & extractionDirection)
   // extraction
   extractor_->compute(image_, keypoints_, descriptors_);
   landmarkIds_ = std::vector<uint64_t>(keypoints_.size(),0);
+  num_total_feature_ = keypoints_.size();
+  feature_type_.resize(num_total_feature_, MATCHABLE);
   return keypoints_.size();
 }
 // describe keypoints. This uses virtual function calls.
