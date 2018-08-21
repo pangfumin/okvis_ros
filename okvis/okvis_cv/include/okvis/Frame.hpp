@@ -204,6 +204,8 @@ class Frame
     return feature_type_[keypointIdx];
   }
 
+
+
   inline size_t numTotalFeature() const {
     return num_total_feature_;
   }
@@ -223,6 +225,7 @@ class Frame
 
   std::map<size_t ,cv::KeyPoint> track_features_;
   std::map<size_t ,uint64_t> track_landmark_;
+
   std::vector<uint> feature_type_;
   size_t num_total_feature_;
     std::shared_ptr<flame::utils::Frame> dense_frame_;  ///< used for mesh estimate

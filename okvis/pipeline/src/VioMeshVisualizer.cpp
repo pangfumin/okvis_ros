@@ -109,100 +109,100 @@ cv::Mat VioMeshVisualizer::drawMatches(VisualizationData::Ptr& data,
   }
 
 
-  for (auto it = data->observations.begin(); it != data->observations.end();
-      ++it) {
-    if (it->cameraIdx != image_number)
-      continue;
-
-    cv::Scalar color;
-
-    if (it->landmarkId != 0) {
-      color = cv::Scalar(255, 0, 0);  // blue
-    } else {
-      color = cv::Scalar(0, 0, 255);  // red
-    }
-
-    // draw matches to keyframe
-    keypoint = it->keypointMeasurement;
-    if (fabs(it->landmark_W[3]) > 1.0e-8) {
-      Eigen::Vector4d hPoint = it->landmark_W;
-      if (it->isInitialized) {
-        color = cv::Scalar(0, 255, 0);  // green
-      } else {
-        color = cv::Scalar(0, 255, 255);  // yellow
-      }
-      Eigen::Vector2d keyframePt;
-      bool isVisibleInKeyframe = false;
-      Eigen::Vector4d hP_C = lastKeyframeT_CW * hPoint;
-      switch (distortionType) {
-        case okvis::cameras::NCameraSystem::RadialTangential: {
-          if (frame
-              ->geometryAs<
-                  okvis::cameras::PinholeCamera<
-                      okvis::cameras::RadialTangentialDistortion>>(image_number)
-              ->projectHomogeneous(hP_C, &keyframePt)
-              == okvis::cameras::CameraBase::ProjectionStatus::Successful)
-            isVisibleInKeyframe = true;
-          break;
-        }
-        case okvis::cameras::NCameraSystem::Equidistant: {
-          if (frame
-              ->geometryAs<
-                  okvis::cameras::PinholeCamera<
-                      okvis::cameras::EquidistantDistortion>>(image_number)
-              ->projectHomogeneous(hP_C, &keyframePt)
-              == okvis::cameras::CameraBase::ProjectionStatus::Successful)
-            isVisibleInKeyframe = true;
-          break;
-        }
-        case okvis::cameras::NCameraSystem::RadialTangential8: {
-          if (frame
-              ->geometryAs<
-                  okvis::cameras::PinholeCamera<
-                      okvis::cameras::RadialTangentialDistortion8>>(
-              image_number)->projectHomogeneous(hP_C, &keyframePt)
-              == okvis::cameras::CameraBase::ProjectionStatus::Successful)
-            isVisibleInKeyframe = true;
-          break;
-        }
-        default:
-          OKVIS_THROW(Exception, "Unsupported distortion type.")
-          break;
-      }
-      if (fabs(hP_C[3]) > 1.0e-8) {
-        if (hP_C[2] / hP_C[3] < 0.4) {
-          isVisibleInKeyframe = false;
-        }
-      }
-
-      if (isVisibleInKeyframe) {
-        // found in the keyframe. draw line
-        cv::line(outimg, cv::Point2f(keyframePt[0], keyframePt[1]),
-                 cv::Point2f(keypoint[0], keypoint[1] + rowJump), color, 1,
-                 CV_AA);
-        cv::circle(actKeyframe, cv::Point2f(keyframePt[0], keyframePt[1]),
-                   0.5 * it->keypointSize, color, 1, CV_AA);
-      }
-    }
-    // draw keypoint
-    const double r = 0.5 * it->keypointSize;
-    cv::circle(current, cv::Point2f(keypoint[0], keypoint[1]), r, color, 1,
-    CV_AA);
-    cv::KeyPoint cvKeypoint;
-    frame->getCvKeypoint(image_number, it->keypointIdx, cvKeypoint);
-    const double angle = cvKeypoint.angle / 180.0 * M_PI;
-    cv::line(
-        outimg,
-        cv::Point2f(keypoint[0], keypoint[1] + rowJump),
-        cv::Point2f(keypoint[0], keypoint[1] + rowJump)
-            + cv::Point2f(cos(angle), sin(angle)) * r,
-        color, 1,
-        CV_AA);
-  }
+//  for (auto it = data->observations.begin(); it != data->observations.end();
+//      ++it) {
+//    if (it->cameraIdx != image_number)
+//      continue;
+//
+//    cv::Scalar color;
+//
+//    if (it->landmarkId != 0) {
+//      color = cv::Scalar(255, 0, 0);  // blue
+//    } else {
+//      color = cv::Scalar(0, 0, 255);  // red
+//    }
+//
+//    // draw matches to keyframe
+//    keypoint = it->keypointMeasurement;
+//    if (fabs(it->landmark_W[3]) > 1.0e-8) {
+//      Eigen::Vector4d hPoint = it->landmark_W;
+//      if (it->isInitialized) {
+//        color = cv::Scalar(0, 255, 0);  // green
+//      } else {
+//        color = cv::Scalar(0, 255, 255);  // yellow
+//      }
+//      Eigen::Vector2d keyframePt;
+//      bool isVisibleInKeyframe = false;
+//      Eigen::Vector4d hP_C = lastKeyframeT_CW * hPoint;
+//      switch (distortionType) {
+//        case okvis::cameras::NCameraSystem::RadialTangential: {
+//          if (frame
+//              ->geometryAs<
+//                  okvis::cameras::PinholeCamera<
+//                      okvis::cameras::RadialTangentialDistortion>>(image_number)
+//              ->projectHomogeneous(hP_C, &keyframePt)
+//              == okvis::cameras::CameraBase::ProjectionStatus::Successful)
+//            isVisibleInKeyframe = true;
+//          break;
+//        }
+//        case okvis::cameras::NCameraSystem::Equidistant: {
+//          if (frame
+//              ->geometryAs<
+//                  okvis::cameras::PinholeCamera<
+//                      okvis::cameras::EquidistantDistortion>>(image_number)
+//              ->projectHomogeneous(hP_C, &keyframePt)
+//              == okvis::cameras::CameraBase::ProjectionStatus::Successful)
+//            isVisibleInKeyframe = true;
+//          break;
+//        }
+//        case okvis::cameras::NCameraSystem::RadialTangential8: {
+//          if (frame
+//              ->geometryAs<
+//                  okvis::cameras::PinholeCamera<
+//                      okvis::cameras::RadialTangentialDistortion8>>(
+//              image_number)->projectHomogeneous(hP_C, &keyframePt)
+//              == okvis::cameras::CameraBase::ProjectionStatus::Successful)
+//            isVisibleInKeyframe = true;
+//          break;
+//        }
+//        default:
+//          OKVIS_THROW(Exception, "Unsupported distortion type.")
+//          break;
+//      }
+//      if (fabs(hP_C[3]) > 1.0e-8) {
+//        if (hP_C[2] / hP_C[3] < 0.4) {
+//          isVisibleInKeyframe = false;
+//        }
+//      }
+//
+//      if (isVisibleInKeyframe) {
+//        // found in the keyframe. draw line
+//        cv::line(outimg, cv::Point2f(keyframePt[0], keyframePt[1]),
+//                 cv::Point2f(keypoint[0], keypoint[1] + rowJump), color, 1,
+//                 CV_AA);
+//        cv::circle(actKeyframe, cv::Point2f(keyframePt[0], keyframePt[1]),
+//                   0.5 * it->keypointSize, color, 1, CV_AA);
+//      }
+//    }
+//    // draw keypoint
+//    const double r = 0.5 * it->keypointSize;
+//    cv::circle(current, cv::Point2f(keypoint[0], keypoint[1]), r, color, 1,
+//    CV_AA);
+//    cv::KeyPoint cvKeypoint;
+//    frame->getCvKeypoint(image_number, it->keypointIdx, cvKeypoint);
+//    const double angle = cvKeypoint.angle / 180.0 * M_PI;
+//    cv::line(
+//        outimg,
+//        cv::Point2f(keypoint[0], keypoint[1] + rowJump),
+//        cv::Point2f(keypoint[0], keypoint[1] + rowJump)
+//            + cv::Point2f(cos(angle), sin(angle)) * r,
+//        color, 1,
+//        CV_AA);
+//  }
 
 
   // visualize tracked feature
-    std::cout<< "data->tracked_observations: " << data->tracked_observations.size() << std::endl;
+
     for (auto it = data->tracked_observations.begin(); it != data->tracked_observations.end();
        ++it) {
     if (it->cameraIdx != image_number) {
@@ -221,10 +221,12 @@ cv::Mat VioMeshVisualizer::drawMatches(VisualizationData::Ptr& data,
 
     // draw matches to keyframe
     keypoint = it->keypointMeasurement;
+
+    //std::cout<< "it->landmark_W[3]: " << it->landmark_W.transpose() << std::endl;
     if (fabs(it->landmark_W[3]) > 1.0e-8) {
       Eigen::Vector4d hPoint = it->landmark_W;
       if (it->isInitialized) {
-        color = cv::Scalar(100, 255, 0);  // green
+        color = cv::Scalar(0,0 , 255);  // green
       } else {
         color = cv::Scalar(100, 255, 255);  // yellow
       }
@@ -240,7 +242,7 @@ cv::Mat VioMeshVisualizer::drawMatches(VisualizationData::Ptr& data,
                       ->projectHomogeneous(hP_C, &keyframePt)
               == okvis::cameras::CameraBase::ProjectionStatus::Successful)
             isVisibleInKeyframe = true;
-            std::cout<< "isVisibleInKeyframe" << isVisibleInKeyframe << std::endl;
+
           break;
         }
         case okvis::cameras::NCameraSystem::Equidistant: {
@@ -281,9 +283,14 @@ cv::Mat VioMeshVisualizer::drawMatches(VisualizationData::Ptr& data,
                  cv::Point2f(keypoint[0], keypoint[1] + rowJump), color, 1,
                  CV_AA);
         cv::circle(actKeyframe, cv::Point2f(keyframePt[0], keyframePt[1]),
-                   0.5 * it->keypointSize, color, 1, CV_AA);
+                   3, cv::Scalar(255,0,0), 1, CV_AA);
       }
     }
+
+      // draw keypoint
+      cv::circle(current, cv::Point2f(keypoint[0], keypoint[1]), 3, cv::Scalar(255,0,0), 1,
+                 CV_AA);
+
 
   }
   return outimg;

@@ -353,10 +353,10 @@ class Flame final {
                                   float* residual,
                                   Image3b* debug_img);
 
-  static bool initilizeLandmark(okvis::Estimator* estimator,
+   static bool initilizeLandmark(okvis::Estimator* estimator,
                                 const FrameIDToFrame& pfs,
                                 FeatureWithIDepth* feat);
-  static bool addTrackObservaton(okvis::Estimator* estimator,
+   static bool addTrackObservaton(okvis::Estimator* estimator,
                                  const utils::Frame& fnew,
                             const FeatureWithIDepth* feat,
                             const size_t camIdx,

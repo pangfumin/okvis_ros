@@ -327,23 +327,25 @@ namespace okvis {
             // Just for cam0
             size_t num_kp = multiFrame->numKeypoints(0);
             size_t num_total = multiFrame->numTotalFeature(0);
-            std::cout<< "keypoint: "<< num_kp << " " << num_total << std::endl;
+            //std::cout<< "keypoint: "<< num_kp << " " << num_total << std::endl;
 
             visualizationDataPtr->tracked_observations.resize(num_total - num_kp);
             okvis::ObservationVector::iterator track_it = visualizationDataPtr
                     ->tracked_observations.begin();
             for (size_t track_feat_id = multiFrame->numKeypoints(0);
-                    track_feat_id < multiFrame->numTotalFeature(0); track_feat_id ++) {
+                    track_feat_id < multiFrame->numTotalFeature(0); track_feat_id += 10) {
 //                std::cout<< "track_feat_id: " << track_feat_id << std::endl;
                 track_it->keypointIdx = track_feat_id;
                 multiFrame->getKeypoint(0, track_feat_id, track_it->keypointMeasurement);
                 track_it->cameraIdx = 0;
                 track_it->frameId = multiFrame->id();
                 track_it->landmarkId = multiFrame->landmarkId(0, track_feat_id);
-                if (estimator_.isLandmarkAdded(it->landmarkId)) {
-                    estimator_.getLandmark(it->landmarkId, landmark);
+                //std::cout<< " track_it->landmarkId: " <<track_it->landmarkId <<  std::endl;
+
+                if (estimator_.isLandmarkAdded(track_it->landmarkId)) {
+                    estimator_.getLandmark(track_it->landmarkId, landmark);
                     track_it->landmark_W = landmark.point;
-                    if (estimator_.isLandmarkInitialized(it->landmarkId))
+                    if (estimator_.isLandmarkInitialized(track_it->landmarkId))
                         track_it->isInitialized = true;
                     else
                         track_it->isInitialized = false;

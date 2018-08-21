@@ -253,6 +253,8 @@ class MultiFrame
     }
 
 
+
+
       /// @}
 
   /// \brief Get the total number of keypoints in all frames.
